@@ -1,0 +1,29 @@
+name: Evidence integrity / 证据完整性
+description: Flag an attribution, source-gate or interpretation problem / 反馈引用或来源问题
+title: "[Evidence] "
+labels: [evidence-integrity]
+body:
+  - type: dropdown
+    id: category
+    attributes:
+      label: Affected gate / 涉及环节
+      options:
+        - Core-journal eligibility / 核心期刊准入
+        - Quote or screenshot / 原句或截图
+        - Section or origin attribution / 章节或原文归属
+        - Context or counterevidence / 上下文或反证
+        - Review record integrity / 复核记录完整性
+    validations:
+      required: true
+  - type: textarea
+    id: issue
+    attributes:
+      label: Problem and evidence / 问题与依据
+      description: Provide public identifiers and section/page details, not private receipts.
+    validations:
+      required: true
+  - type: textarea
+    id: boundary
+    attributes:
+      label: Appropriate conclusion / 合理结论边界
+      description: Explain what the source actually supports.

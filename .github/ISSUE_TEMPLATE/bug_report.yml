@@ -1,0 +1,25 @@
+name: Bug report / 缺陷反馈
+description: Report a reproducible failure without private documents / 请勿附带私人文件
+title: "[Bug] "
+labels: [bug]
+body:
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and actual behavior / 预期与实际行为
+      description: Include the command and JSON error, with secrets removed.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Release, OS and Python / 版本、系统与 Python
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Minimal reproduction / 最小复现
+      description: Use synthetic inputs. Do not upload copyrighted or private PDFs.
+    validations:
+      required: true

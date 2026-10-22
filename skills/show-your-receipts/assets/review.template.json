@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "packet_sha256": "",
+  "reviewed_at": "",
+  "reviewer": {
+    "kind": "",
+    "name": ""
+  },
+  "claim": "",
+  "support": "",
+  "summary": "",
+  "translation": "",
+  "scope_assessment": "",
+  "applicability_mismatch": "",
+  "limitations_summary": "",
+  "counterevidence_summary": "",
+  "target_alignment": {
+    "target_quote": "",
+    "intended_use": "",
+    "related_aspect": "",
+    "rationale": "",
+    "supports": "",
+    "does_not_support": ""
+  },
+  "anchors": {
+    "purpose": {
+      "quotes": []
+    },
+    "methods": {
+      "quotes": []
+    },
+    "results": {
+      "quotes": []
+    },
+    "limitations": {
+      "quotes": [],
+      "all_pages_reviewed": [],
+      "search_notes": ""
+    },
+    "counterevidence": {
+      "quotes": [],
+      "all_pages_reviewed": [],
+      "search_notes": ""
+    }
+  },
+  "anchor_example_do_not_submit": {
+    "page": 0,
+    "printed_page": "",
+    "quote": "",
+    "section_heading": "",
+    "heading_page": 0,
+    "section_role": "",
+    "paragraph": "",
+    "origin": ""
+  }
+}

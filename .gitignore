@@ -1,0 +1,47 @@
+# Local environments and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Credentials and local agent state
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.claude/
+.agents/
+.trae/
+
+# Never publish research inputs or generated evidence
+*.pdf
+*.docx
+*.png
+*.jpg
+*.jpeg
+*.zip
+receipt-*/
+receipts/
+evidence/
+outputs/
+dist/
+source.json
+target.json
+target-document.*
+download.json
+*.download.json
+review.json
+receipt.json
+paper-text.json
+report.md
+context.txt
+index-record.*
+publisher-record.*

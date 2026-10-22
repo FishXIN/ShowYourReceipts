@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "article": {
+    "title": "",
+    "journal": "",
+    "doi": "",
+    "url": "",
+    "issn": "",
+    "year": 0,
+    "kind": "original_research",
+    "version": "published",
+    "identity": {
+      "page": 0,
+      "quote": ""
+    }
+  },
+  "index": {
+    "system": "",
+    "edition": "",
+    "coverage_start_year": 0,
+    "coverage_end_year": 0,
+    "official_url": "",
+    "collection_label": "",
+    "membership_quote": "",
+    "snapshot": "",
+    "snapshot_sha256": "",
+    "checked_at": "",
+    "reviewer": {
+      "kind": "",
+      "name": ""
+    }
+  },
+  "status": {
+    "assessment": "",
+    "publisher_url": "",
+    "snapshot": "",
+    "snapshot_sha256": "",
+    "checked_at": "",
+    "reviewer": {
+      "kind": "",
+      "name": ""
+    },
+    "correction_url": "",
+    "correction_note": ""
+  }
+}
