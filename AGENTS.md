@@ -9,6 +9,9 @@
   Preserve every citation edge and PDF. No section automatically proves ownership.
   Unresolved lineage or a final cited claim/hypothesis must block export.
 - Preserve original images and generate underlines from matched PDF glyphs.
+- Final research delivery is one fixed minimal illustrated Word report and its
+  complete evidence ZIP. Do not offer format selection or add covers, TOCs,
+  decoration or free-form extra sections.
 - Never label an automated review or successful structural check as a guarantee
   of scientific truth.
 - Keep English before Chinese in human/agent documentation.
@@ -26,3 +29,5 @@
 先看摘要，逐层溯源并保留引用链和原文；章节不能单独证明归属，转引论断
 或溯源未完成须阻止导出。
 研究文件、私人数据和凭证不得进入版本库；发布前必须通过检查。
+最终固定交付一份极简图文 Word 和原文 ZIP，不让用户自由选格式，
+不添加封面、目录、装饰或额外分析。

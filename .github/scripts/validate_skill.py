@@ -32,6 +32,8 @@ def main():
         require(bool(body.strip()), "skill body cannot be empty")
     require(len(document.splitlines()) < 500, "move extended instructions into references")
     for md in SKILL.rglob("*.md"):
+        if "node_modules" in md.relative_to(SKILL).parts:
+            continue
         content = md.read_text(encoding="utf-8")
         require("## 中文" in content, f"{md.name} needs English-first Chinese explanation")
         for link in re.findall(r"\[[^\]]*\]\(([^)]+)\)", content):
@@ -50,13 +52,13 @@ def main():
                     f"third-party action must be pinned to a commit: {action}")
         require("permissions:" in content, "workflow permissions must be explicit")
     for file in ROOT.rglob("*"):
-        if any(part in (".git", ".venv", "__pycache__") for part in file.relative_to(ROOT).parts):
+        if any(part in (".git", ".venv", "__pycache__", "node_modules") for part in file.relative_to(ROOT).parts):
             continue
         require(not file.is_symlink(), f"unexpected symlink: {file.relative_to(ROOT)}")
         if file.is_file():
             require(file.suffix.lower() not in (".pdf", ".docx", ".png", ".jpg", ".zip"),
                     f"research or output artifact found: {file.relative_to(ROOT)}")
-            if file.suffix in (".md", ".py", ".json", ".yml"):
+            if file.suffix in (".md", ".py", ".cjs", ".json", ".yml"):
                 content = file.read_text(encoding="utf-8")
                 require(not re.search(r"(?:gh[pousr]_[A-Za-z0-9]{30,}|sk-[A-Za-z0-9]{30,})", content),
                         f"possible credential in {file.relative_to(ROOT)}")

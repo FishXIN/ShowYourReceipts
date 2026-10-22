@@ -16,6 +16,9 @@ Read
 Read [original-source](references/original-source.md) for abstract screening and
 recursive citation tracing.
 Read [packet-format](references/packet-format.md) before running the scripts.
+Read [word-output](references/word-output.md) for the required final layout.
+Final delivery is one minimal illustrated Word document plus its evidence ZIP.
+Do not ask the user to choose a format or substitute a free-form report.
 
 ## Non-negotiable source gate
 
@@ -90,8 +93,9 @@ Read [packet-format](references/packet-format.md) before running the scripts.
    method precedent, contradiction, and insufficient evidence. Identify shared
    datasets/participants; multiple papers from the same study are not independent
    replications. Label single-source conclusions explicitly.
-   Deliver a validated ZIP with the complete original and citation-hop PDFs, screenshots, exact
-   user/source locations, context review and summary. Do not replace PDFs with
+   Use `deliver` to produce one Word report in the fixed evidence layout and a
+   matching ZIP with the complete original and citation-hop PDFs, screenshots,
+   exact user/source locations and review records. Do not replace PDFs with
    download links. Keep research packets private unless sharing is authorized.
 
 ## Commands
@@ -102,7 +106,10 @@ Use Python 3.10–3.13 and install the tested dependencies in a virtual environm
 ```bash
 python3 -m venv /path/to/task/.venv
 /path/to/task/.venv/bin/python -m pip install -r "$SKILL_DIR/scripts/requirements.txt"
+npm ci --ignore-scripts --no-audit --no-fund --prefix "$SKILL_DIR/scripts"
 ```
+
+Word generation also requires Node.js 20+.
 
 Download the complete paper when a lawful public PDF URL is available, then inspect:
 
@@ -127,8 +134,8 @@ Then fill `receipt-001/review.json` and run:
 
 ```bash
 python "$SKILL_DIR/scripts/receipts.py" check --bundle receipt-001
-python "$SKILL_DIR/scripts/receipts.py" export --bundle receipt-001
-python "$SKILL_DIR/scripts/receipts.py" pack --bundle receipt-001 --out evidence-001.zip
+python "$SKILL_DIR/scripts/receipts.py" deliver \
+  --bundles receipt-001 --out "/path/to/task/论文证据.docx"
 ```
 
 Exit code `0` means the command's structural checks passed; `2` means rejected.
@@ -140,6 +147,8 @@ Do not describe it as a guarantee that an agent cannot hallucinate.
 
 For every final claim, deliver:
 
+- One consolidated `.docx` with the fixed minimal text-and-image evidence blocks.
+  No cover, TOC, decoration, extra analysis or format selection.
 - Full citation, DOI or stable article URL, journal, and verified core system/year.
 - Literal original quote, separately labeled translation, PDF page and printed page.
 - Exact section heading, section role, paragraph/table/figure locator, and claim
@@ -206,3 +215,9 @@ DOI、知网或 PubMed 收录不等于核心期刊资格。
 从授权来源下载完整已发表 PDF，保存来源链接和哈希，并将原文 PDF、
 截图、定位、用户论文映射和复核总结一起打成 ZIP。下载失败或只有摘要
 要报告缺口，不能拿链接充当原文文件。证据包默认保留在使用者本地。
+
+最终固定输出一份极简图文 Word，按“第五部分”的逐条证据结构：
+出处与链接、对应用户研究、原句与中文对照、支持与边界、原文位置和溯源、
+原图与红线图。通过 `deliver` 汇总全部证据并生成配套原文 ZIP。
+不让用户选择格式，不允许 Agent 自由输出；不加封面、目录、装饰或额外
+分析段。Markdown 只作内部核验记录，不代替最终 Word。
