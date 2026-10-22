@@ -12,6 +12,7 @@ import zipfile
 from datetime import date
 from pathlib import Path
 from unittest import mock
+from xml.etree import ElementTree
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "skills/show-your-receipts/scripts/receipts.py"
@@ -229,6 +230,8 @@ class ReceiptTests(unittest.TestCase):
         self.assertIn("original_source_resolved", report)
         self.assertIn("Abstract decision", report)
         self.assertLess(report.index("## Evidence receipt"), report.index("## 中文"))
+        self.assertEqual(result["report"], str(self.bundle / "report.docx"))
+        self.assertTrue((self.bundle / "report.docx").is_file())
 
     def test_unreviewed_draft_cannot_export(self):
         self.extraction()
@@ -650,12 +653,86 @@ class ReceiptTests(unittest.TestCase):
             self.assertEqual(archive.read("receipt/source.pdf"), self.pdf.read_bytes())
             self.assertIn("receipt/target.json", archive.namelist())
             self.assertIn("receipt/report.md", archive.namelist())
+            self.assertIn("receipt/report.docx", archive.namelist())
             self.assertIn(b"did not significantly", archive.read("receipt/report.md"))
 
     def test_unreviewed_packet_cannot_be_packaged(self):
         self.extraction()
         with self.assertRaises(r.Rejected):
             r.pack(argparse.Namespace(bundle=str(self.bundle), out=str(self.root / "bad.zip")))
+
+    def test_fixed_word_delivery_contains_quotes_links_images_and_no_decoration(self):
+        self.extraction()
+        self.complete_review()
+        output = self.root / "final.docx"
+        result = r.deliver(argparse.Namespace(bundles=[str(self.bundle)], out=str(output)))
+        self.assertEqual(result["evidence_count"], 1)
+        ns = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
+        with zipfile.ZipFile(output) as archive:
+            document = ElementTree.fromstring(archive.read("word/document.xml"))
+            content = "".join(t.text or "" for t in document.findall(".//w:t", ns))
+            self.assertIn("论文原文、中文对照与红线截图", content)
+            self.assertIn(self.quote, content)
+            self.assertIn(self.target["location"]["quote"], content)
+            self.assertIn("合成测试文档", content)
+            self.assertIn("原文位置与归属", content)
+            self.assertEqual(len(document.findall(".//w:sectPr", ns)), 1)
+            self.assertEqual(len(document.findall(".//w:drawing", ns)), 2)
+            self.assertFalse(document.findall(".//w:instrText", ns))
+            self.assertFalse(any("header" in name or "footer" in name for name in archive.namelist()))
+            rels = ElementTree.fromstring(archive.read("word/_rels/document.xml.rels"))
+            targets = [rel.attrib.get("Target") for rel in rels]
+            self.assertIn("https://doi.org/10.1234/fixture", targets)
+            images = [archive.read(name) for name in archive.namelist() if name.startswith("word/media/")]
+            self.assertIn((self.bundle / "excerpt-original.png").read_bytes(), images)
+            self.assertIn((self.bundle / "excerpt-underlined.png").read_bytes(), images)
+        with zipfile.ZipFile(output.with_suffix(".zip")) as archive:
+            self.assertEqual(archive.read("final.docx"), output.read_bytes())
+            self.assertEqual(archive.read("evidence-001/source.pdf"), self.pdf.read_bytes())
+
+    def test_one_word_combines_all_receipts_in_order_and_all_source_pdfs(self):
+        self.extraction()
+        self.complete_review()
+        second = self.root / "second"
+        self.extraction(out=str(second))
+        review = r.load_json(self.bundle / "review.json")
+        review["packet_sha256"] = r.load_json(second / "receipt.json")["packet_sha256"]
+        review["claim"] = "Second synthetic claim."
+        r.write_json(second / "review.json", review)
+        output = self.root / "combined.docx"
+        result = r.deliver(argparse.Namespace(bundles=[str(self.bundle), str(second)], out=str(output)))
+        self.assertEqual(result["evidence_count"], 2)
+        with zipfile.ZipFile(output) as archive:
+            text = archive.read("word/document.xml").decode("utf-8")
+            self.assertLess(text.index("证据 1"), text.index("证据 2"))
+            self.assertIn("Second synthetic claim.", text)
+        with zipfile.ZipFile(output.with_suffix(".zip")) as archive:
+            self.assertIn("evidence-001/source.pdf", archive.namelist())
+            self.assertIn("evidence-002/source.pdf", archive.namelist())
+
+    def test_word_delivery_rejects_unreviewed_wrong_format_and_existing_outputs(self):
+        self.extraction()
+        output = self.root / "final.docx"
+        with self.assertRaises(r.Rejected):
+            r.deliver(argparse.Namespace(bundles=[str(self.bundle)], out=str(output)))
+        self.assertFalse(output.exists())
+        self.complete_review()
+        with self.assertRaises(r.Rejected):
+            r.deliver(argparse.Namespace(bundles=[str(self.bundle)], out=str(self.root / "final.html")))
+        output.with_suffix(".zip").write_bytes(b"existing")
+        with self.assertRaises(r.Rejected):
+            r.deliver(argparse.Namespace(bundles=[str(self.bundle)], out=str(output)))
+        self.assertFalse(output.exists())
+
+    def test_failed_word_generation_leaves_no_final_outputs(self):
+        self.extraction()
+        self.complete_review()
+        output = self.root / "final.docx"
+        with mock.patch.object(r, "render_word", side_effect=r.Rejected("renderer unavailable")):
+            with self.assertRaises(r.Rejected):
+                r.deliver(argparse.Namespace(bundles=[str(self.bundle)], out=str(output)))
+        self.assertFalse(output.exists())
+        self.assertFalse(output.with_suffix(".zip").exists())
 
     def test_download_rejects_local_private_addresses_and_bad_schemes(self):
         with mock.patch.object(r.socket, "getaddrinfo", return_value=[

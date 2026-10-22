@@ -25,8 +25,8 @@ It's **one installable Agent Skill**. Use it with your agent's search and readin
   with the page, section and paragraph spelled out.
 - **Connect it to your work.** See which hypothesis, scale or experiment step a
   paper supports, including its limits and contrary findings.
-- **Keep it all together.** Package the original PDFs, screenshots and summary
-  into a ZIP you can revisit.
+- **Keep it all together.** Get one minimal Word report with quotes and images,
+  plus a ZIP of the original PDFs and complete evidence.
 
 Useful for literature reviews, checking citations, choosing measurement scales,
 and finding a sound basis for an experiment.
@@ -41,14 +41,15 @@ Then give your agent a task:
 
 > Use ShowYourReceipts to find core-journal evidence for my experiment.
 > Trace the claims to their original papers, show the key passages, explain
-> which parts of my experiment they support, and package the PDFs.
+> which parts of my experiment they support, and deliver the fixed Word report
+> with the PDFs in its matching ZIP.
 > Tell me where the evidence runs out.
 
 For a pinned version, download the [release](https://github.com/FishXIN/ShowYourReceipts/releases)
 or copy the skill from a tagged checkout:
 
 ```bash
-git clone --branch v0.1.1 --depth 1 https://github.com/FishXIN/ShowYourReceipts.git
+git clone --branch v0.1.2 --depth 1 https://github.com/FishXIN/ShowYourReceipts.git
 mkdir -p /path/to/project/.agents/skills
 cp -R ShowYourReceipts/skills/show-your-receipts /path/to/project/.agents/skills/
 ```
@@ -82,17 +83,23 @@ interpretation still need a researcher’s judgment.
 ## Local tools
 
 The skill includes a Python helper for downloading public PDFs, marking passages,
-checking records and packaging evidence. Requires Python **3.10–3.13** and text PDFs.
+checking records and packaging evidence. Requires Python **3.10–3.13**,
+Node.js **20+** and text PDFs.
 
 ```bash
 python3 -m venv /path/to/task/.venv
 /path/to/task/.venv/bin/python -m pip install \
   -r /path/to/skill/scripts/requirements.txt
+npm ci --ignore-scripts --no-audit --no-fund --prefix /path/to/skill/scripts
 ```
 
 Your agent follows the [skill instructions](skills/show-your-receipts/SKILL.md).
 For manual use, the [packet guide](skills/show-your-receipts/references/packet-format.md)
 covers the commands and input templates.
+The [Word layout](skills/show-your-receipts/references/word-output.md) is fixed:
+each evidence item has its source, relation to your work, original/translated
+quote, support and limits, location, trace and screenshots. No cover or TOC.
+The final output is one `.docx` plus its evidence ZIP, without format selection.
 
 Search and access depend on your agent and its available tools. The helper
 downloads lawful public PDFs; it does not log in or bypass paywalls.
@@ -108,7 +115,7 @@ or see [CONTRIBUTING.md](CONTRIBUTING.md).
 The repository contains one self-contained skill, tests and project configuration.
 It ships no research papers, private manuscripts or credentials. Project code is MIT.
 
-CI runs 43 adversarial tests across Linux, macOS and Windows on Python 3.10–3.13.
+CI runs 47 adversarial tests across Linux, macOS and Windows on Python 3.10–3.13.
 
 ```bash
 python .github/scripts/validate_skill.py
@@ -133,7 +140,7 @@ ShowYourReceipts 帮你的 AI 找论文、追出处、画重点、整理资料�
 - **追到原始出处：** 先看摘要，再核对正文；遇到转引，沿参考文献继续找。
 - **把重点摆出来：** 原句、翻译、红线截图，以及具体章节和页码一起给你。
 - **说明与你的研究有什么关系：** 支持哪个假设、量表或实验步骤，有哪些限制。
-- **把资料收好：** 原文 PDF、截图和总结一起打包，下次不用从头翻。
+- **把资料收好：** 一份极简图文 Word，配上完整原文 ZIP，下次不用从头翻。
 
 写综述、查引用、选量表、找实验依据，都可以叫它帮忙。
 
@@ -146,11 +153,16 @@ npx skills add FishXIN/ShowYourReceipts --skill show-your-receipts
 装好后，直接对 Agent 说：
 
 > 帮我找这个实验的核心期刊依据。追到真正的原始论文，把关键原句画出来，
-> 说明它支持我实验的哪个环节，再把 PDF 和资料打包。找不到依据就直说。
+> 说明它支持我实验的哪个环节，按固定版式输出图文 Word，
+> 再把 PDF 和资料打包。找不到依据就直说。
 
 也可以从 [发布页](https://github.com/FishXIN/ShowYourReceipts/releases)
 下载，按上方目录表放进你的 Agent。
-本地工具需要 Python 3.10–3.13；具体步骤交给 Skill 指引。
+本地工具需要 Python 3.10–3.13、Node.js 20+；具体步骤交给 Skill 指引。
+
+最终固定交付一份极简 Word：逐条证据、出处、原句与中文对照、支持与边界、
+对应研究、具体位置和原图/红线图。原文 PDF 放进配套 ZIP。
+不让用户选格式，不让 Agent 随意排版；不加封面、目录、装饰或额外分析。
 
 ### 找得快，出处也要跟得上
 

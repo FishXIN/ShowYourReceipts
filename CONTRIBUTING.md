@@ -18,6 +18,7 @@ adversarial test. Never weaken fail-closed behavior to make a fixture pass.
 python3 -m venv /path/to/dev/.venv
 /path/to/dev/.venv/bin/python -m pip install \
   -r skills/show-your-receipts/scripts/requirements.txt
+npm ci --ignore-scripts --no-audit --no-fund --prefix skills/show-your-receipts/scripts
 /path/to/dev/.venv/bin/python .github/scripts/validate_skill.py
 /path/to/dev/.venv/bin/python -m unittest discover -s tests -v
 ```
@@ -26,6 +27,8 @@ Use synthetic, explicitly labeled fixtures for tests. Do not add copyrighted
 publisher PDFs. Place caches and generated packets outside the source tree.
 Keep the command-line result format machine-readable and the skill's references
 aligned with code behavior.
+Use Node.js 20+ for the fixed Word renderer. Preserve the minimal text/image
+layout; do not add a user-selectable format or decorate the evidence report.
 
 Preserve exact quotations, original images, section/paragraph attribution,
 contrary findings and reviewer identity. A contribution must not claim that
@@ -50,3 +53,5 @@ have the right to contribute their code and documentation.
 使用明确标记的合成测试素材，生成物和缓存放在源码之外。修改后运行
 结构检查与测试，提交说明实际问题、行为变化和验证结果的 PR。
 不能声称 Agent 复核或哈希足以证明学术真实性。
+Word 生成使用 Node.js 20+，安装锁定依赖；保持固定极简图文版式，
+不添加自由格式选择或装饰。

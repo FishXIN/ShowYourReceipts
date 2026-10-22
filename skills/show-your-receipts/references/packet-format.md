@@ -146,13 +146,30 @@ citation/reference links and images. Broken/unresolved chains and final
 
 ## Export and package
 
+The final task deliverable is one minimal illustrated Word document and its
+matching evidence ZIP. Install the pinned Word dependencies once (Node.js 20+):
+
+```bash
+npm ci --ignore-scripts --no-audit --no-fund --prefix "$SKILL_DIR/scripts"
+python scripts/receipts.py deliver \
+  --bundles receipt-001 receipt-002 --out "/path/to/task/论文证据.docx"
+```
+
+`deliver` rechecks all supplied packets and writes one `.docx` plus a same-name
+ZIP containing that report and every complete evidence packet/PDF. Follow the
+word-output guide linked from SKILL.md. Format and layout are fixed; do not ask
+the user to choose or replace the final Word with another medium.
+
+Single-packet helper commands remain available:
+
 ```bash
 python scripts/receipts.py export --bundle receipt-001
 python scripts/receipts.py pack --bundle receipt-001 --out evidence-001.zip
 ```
 
-Creates `report.md` only after `check` passes. Export shows English first and
-Chinese labels afterwards, with original/underlined images and location captions.
+Creates `report.docx` and an internal `report.md` only after `check` passes.
+Markdown shows English first and Chinese labels afterwards; the fixed Word
+layout follows the text/image evidence blocks with original/underlined images.
 The underlying packet remains a draft artifact; export is marked
 `record_checks_passed`, not “scientifically verified”. Never bypass `check` using
 manually generated final screenshots.
@@ -160,7 +177,8 @@ manually generated final screenshots.
 `pack` reruns all checks and generates a fresh summary from the validated records.
 The ZIP contains the complete original `source.pdf`, original/annotated images,
 the user's source document, target mapping, source/review records, `lineage.json`,
-every original citation-hop PDF and citation/reference screenshots, and `report.md`.
+every original citation-hop PDF and citation/reference screenshots, `report.docx`
+and the internal `report.md`.
 It does not pick up arbitrary extra files in the packet directory. A local packet
 contains private or copyrighted source documents; share only as authorized.
 
@@ -185,7 +203,9 @@ Run PDF parsing with OS/container isolation for untrusted files.
 最终原始论文。无转引也要记录摘要初筛和原创归属依据；有转引时逐跳保存
 引用段、参考文献条目、原文 PDF、来源核验和原图/红线图。
 
-填写绑定证据包哈希的复核记录后执行检查，检查通过才能导出双语 Markdown。
+填写绑定证据包哈希的复核记录后执行检查，检查通过才能导出极简图文 Word。
+通过 `deliver` 将所有证据汇总为一份 Word 和同名 ZIP，不让用户随意选择
+输出格式；Markdown 仅保留作内部核验。
 检查通过代表记录和文件一致，不能写成学术真伪已经自动验证。扫描、旋转、
 裁切异常或加密 PDF 会拒绝处理，不能静默用 OCR 猜测原句。
 `download` 获取合法完整 PDF 并记录链接、日期和哈希；下载文件仍需通过

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import hashlib
 import html
 import http.client
@@ -14,6 +15,7 @@ import re
 import shutil
 import socket
 import ssl
+import subprocess
 import sys
 import tempfile
 import time
@@ -25,7 +27,7 @@ from pathlib import Path
 from urllib.parse import urljoin, urlparse
 from xml.etree import ElementTree
 
-VERSION = "0.1.0"
+VERSION = "0.1.2"
 SYSTEMS = {
     "SCIE": ("mjl.clarivate.com", "clarivate.com"),
     "SSCI": ("mjl.clarivate.com", "clarivate.com"),
@@ -911,7 +913,8 @@ def check(bundle):
     record = load_json(confined(root, "receipt.json"))
     require(record.get("schema_version") == 1 and record.get("state") == "draft",
             "unsupported receipt format/state")
-    require(record.get("generator_version") == VERSION, "unsupported receipt generator version")
+    require(record.get("generator_version") in ("0.1.0", VERSION),
+            "unsupported receipt generator version")
     require(record.get("packet_sha256") == packet_digest(record), "packet manifest hash mismatch")
     source = load_json(confined(root, "source.json"))
     target = load_json(confined(root, "target.json"))
@@ -1081,15 +1084,97 @@ def report_content(record, source, review, target_record, lineage):
     return "\n".join(lines)
 
 
+def word_evidence(root, record, source, review, target, lineage):
+    """Project checked evidence into the one fixed user-facing Word layout."""
+    article = source["article"]
+    loc = target["location"]
+    alignment = review["target_alignment"]
+
+    def images(prefix, caption):
+        return [{
+            "label": label, "location": caption,
+            "png_base64": base64.b64encode(confined(root, prefix + name).read_bytes()).decode("ascii"),
+        } for label, name in (
+            ("原始截图", "excerpt-original.png"), ("红线截图", "excerpt-underlined.png"),
+        )]
+
+    chain = [hop["identifier"] for hop in lineage["hops"]] + [lineage["final_identifier"]]
+    hops = []
+    for number, hop in enumerate(lineage["hops"], 1):
+        prefix, _ = trace_names(number)
+        hops.append({
+            "identity": hop["identifier"] + " → " + hop["cited_identifier"] + "；" + hop["link_rationale"],
+            "passage": hop["passage"]["quote"] + "｜" + location_caption(hop["passage"]),
+            "reference": hop["reference"]["quote"] + "｜" + location_caption(hop["reference"]),
+            "images": images(prefix + "-passage-", location_caption(hop["passage"]))
+                      + images(prefix + "-reference-", location_caption(hop["reference"])),
+        })
+    support_labels = {
+        "direct": "直接支持", "indirect": "间接支持", "method_precedent": "方法先例",
+        "contradiction": "反证", "insufficient": "证据不足",
+    }
+    return {
+        "claim": review["claim"],
+        "citation": f"{article['title']}. {article['journal']} ({article['year']}).",
+        "eligibility": source["index"]["system"] + " / " + source["index"]["edition"]
+                       + "；" + support_labels[review["support"]],
+        "url": "https://doi.org/" + article["doi"] if article.get("doi") else article["url"],
+        "target_location": f"{target['title']}｜{loc['section_heading']}｜"
+                           f"{loc['unit']} {loc['unit_number']}",
+        "target_quote": loc["quote"],
+        "relevance": alignment["related_aspect"] + "；" + alignment["rationale"],
+        "original": record["literal_quote"],
+        "translation": review["translation"],
+        "supports": alignment["supports"] + "；" + review["summary"],
+        "limits": "；".join((alignment["does_not_support"], review["scope_assessment"],
+                            review["applicability_mismatch"], review["limitations_summary"],
+                            review["counterevidence_summary"])),
+        "location": location_caption(record["location"]),
+        "lineage": " → ".join(chain) + "；" + lineage["ownership"]["rationale"],
+        "images": images("", location_caption(record["location"])),
+        "hops": hops,
+    }
+
+
+def render_word(evidence):
+    node = shutil.which("node")
+    require(node is not None, "Word output requires Node.js 20+ and npm ci in the skill scripts directory")
+    script = Path(__file__).with_name("render-word.cjs")
+    result = subprocess.run(
+        [node, str(script)], input=canonical({"layout": "minimal-evidence-v1", "evidence": evidence}),
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=60, check=False,
+    )
+    require(result.returncode == 0,
+            "Word generation failed: " + result.stderr.decode("utf-8", errors="replace")[:1000])
+    require(len(result.stdout) <= MAX_BYTES, "Word output exceeds size limit")
+    with zipfile.ZipFile(io.BytesIO(result.stdout)) as archive:
+        require(archive.testzip() is None, "generated Word archive is corrupt")
+        document = ElementTree.fromstring(archive.read("word/document.xml"))
+        ns = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
+        require(len(document.findall(".//w:sectPr", ns)) == 1, "Word must have exactly one section")
+        fields = document.findall(".//w:instrText", ns)
+        require(not any("TOC" in (field.text or "") for field in fields), "Word must not contain a TOC")
+        require(bool(document.findall(".//w:drawing", ns)), "Word report needs actual evidence images")
+    return result.stdout
+
+
 def export(bundle):
     result, record, source, review = check(bundle)
     root = Path(bundle)
     target = root / "report.md"
-    require(not target.exists(), "report.md exists; export to a fresh bundle or remove it deliberately")
-    target.write_text(report_content(record, source, review, load_json(root / "target.json"),
-                                     load_json(root / "lineage.json")),
-                      encoding="utf-8")
-    return {**result, "report": str(target)}
+    word = root / "report.docx"
+    require(not target.exists() and not word.exists(), "report already exists; use a fresh bundle")
+    user_target, lineage = load_json(root / "target.json"), load_json(root / "lineage.json")
+    data = render_word([word_evidence(root, record, source, review, user_target, lineage)])
+    content = report_content(record, source, review, user_target, lineage)
+    with tempfile.TemporaryDirectory(prefix=".word-export-", dir=root) as temp:
+        staged_word, staged_audit = Path(temp) / "report.docx", Path(temp) / "report.md"
+        staged_word.write_bytes(data)
+        staged_audit.write_text(content, encoding="utf-8")
+        require(not target.exists() and not word.exists(), "report appeared during export")
+        staged_word.rename(word)
+        staged_audit.rename(target)
+    return {**result, "report": str(word), "audit_report": str(target)}
 
 
 def pack(args):
@@ -1101,6 +1186,9 @@ def pack(args):
     require(not target.is_relative_to(root), "ZIP output must be outside the source bundle")
     content = report_content(record, source, review, load_json(root / "target.json"),
                              load_json(root / "lineage.json"))
+    word = render_word([word_evidence(
+        root, record, source, review, load_json(root / "target.json"), load_json(root / "lineage.json"),
+    )])
     target.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix=".receipt-zip-", dir=target.parent) as temp:
         archive_path = Path(temp) / "bundle.zip"
@@ -1108,9 +1196,59 @@ def pack(args):
             for name in sorted(set(record["files"]) | {"receipt.json", "review.json"}):
                 archive.write(confined(root, name), f"{root.name}/{name}")
             archive.writestr(f"{root.name}/report.md", content)
+            archive.writestr(f"{root.name}/report.docx", word)
         require(not target.exists(), "ZIP output appeared during packaging")
         archive_path.rename(target)
     return {**result, "archive": str(target), "archive_sha256": digest_file(target)}
+
+
+def deliver(args):
+    """Produce one fixed Word document and one complete PDF/evidence ZIP."""
+    target = Path(args.out).absolute()
+    archive_target = target.with_suffix(".zip")
+    require(target.suffix.lower() == ".docx", "final output must end in .docx")
+    require(not target.exists() and not archive_target.exists()
+            and not target.is_symlink() and not archive_target.is_symlink(),
+            "final output already exists or is symlinked")
+    roots = [Path(bundle).absolute() for bundle in args.bundles]
+    require(bool(roots) and len(roots) <= 100, "delivery needs 1..100 evidence packets")
+    require(len({root.resolve() for root in roots}) == len(roots), "duplicate evidence packet")
+    require(not any(target.resolve().is_relative_to(root.resolve()) for root in roots),
+            "final Word output must be outside evidence packet directories")
+    checked, evidence = [], []
+    for root in roots:
+        result, record, source, review = check(root)
+        user_target = load_json(root / "target.json")
+        lineage = load_json(root / "lineage.json")
+        evidence.append(word_evidence(root, record, source, review, user_target, lineage))
+        checked.append((root, record, source, review, user_target, lineage))
+    word = render_word(evidence)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix=".word-delivery-", dir=target.parent) as temp:
+        staged_word = Path(temp) / "report.docx"
+        staged_zip = Path(temp) / "evidence.zip"
+        staged_word.write_bytes(word)
+        with zipfile.ZipFile(staged_zip, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr(target.name, word)
+            for number, (root, record, source, review, user_target, lineage) in enumerate(checked, 1):
+                prefix = f"evidence-{number:03d}"
+                for name in sorted(set(record["files"]) | {"receipt.json", "review.json"}):
+                    archive.write(confined(root, name), f"{prefix}/{name}")
+                archive.writestr(f"{prefix}/report.md",
+                                 report_content(record, source, review, user_target, lineage))
+        require(not target.exists() and not archive_target.exists(), "final output appeared during delivery")
+        staged_zip.rename(archive_target)
+        try:
+            staged_word.rename(target)
+        except OSError:
+            archive_target.unlink()
+            raise
+    return {
+        "status": "record_checks_passed", "report": str(target), "archive": str(archive_target),
+        "evidence_count": len(roots), "report_sha256": digest_file(target),
+        "archive_sha256": digest_file(archive_target),
+        "scientific_interpretation": "reviewer_assessed_not_machine_certified",
+    }
 
 
 def inspect(args):
@@ -1179,12 +1317,17 @@ def main(argv=None):
     packaging = commands.add_parser("pack", help="package validated evidence with original PDFs")
     packaging.add_argument("--bundle", required=True)
     packaging.add_argument("--out", required=True)
+    delivery = commands.add_parser("deliver", help="produce one fixed minimal Word and evidence ZIP")
+    delivery.add_argument("--bundles", nargs="+", required=True)
+    delivery.add_argument("--out", required=True)
     args = parser.parse_args(argv)
     try:
         if args.command == "download":
             result = download(args)
         elif args.command == "pack":
             result = pack(args)
+        elif args.command == "deliver":
+            result = deliver(args)
         elif args.command == "inspect":
             result = inspect(args)
         elif args.command == "inspect-target":

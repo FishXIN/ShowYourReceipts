@@ -1,0 +1,14 @@
+{
+  "name": "show-your-receipts-word",
+  "version": "0.1.2",
+  "private": true,
+  "description": "Fixed, minimal Word evidence output for ShowYourReceipts.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "docx": "9.5.1",
+    "image-size": "2.0.4"
+  }
+}
