@@ -2,14 +2,14 @@ cff-version: 1.2.0
 message: Please cite this software when its evidence workflow contributes to your research. 使用本工具辅助研究时，请引用软件而非将其作为学术结论的证据。
 type: software
 title: ShowYourReceipts
-version: 0.1.0
+version: 0.1.1
 date-released: 2026-10-22
 authors:
   - name: ShowYourReceipts contributors
 repository-code: https://github.com/FishXIN/ShowYourReceipts
 url: https://github.com/FishXIN/ShowYourReceipts
 license: MIT
-abstract: An Agent Skill for core-journal source records, exact PDF quotations, original and underlined screenshots, section attribution, context reviews and auditable summaries.
+abstract: A research sidekick that helps AI agents find core-journal papers, follow citations to original sources, highlight useful passages and package evidence for researchers.
 keywords:
   - agent-skills
   - scientific-evidence

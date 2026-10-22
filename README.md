@@ -1,89 +1,88 @@
 # ShowYourReceipts
 
-**No receipts, no claims.**
+**Less paper chasing. More research.**
 
 [![CI](https://github.com/FishXIN/ShowYourReceipts/actions/workflows/ci.yml/badge.svg)](https://github.com/FishXIN/ShowYourReceipts/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Agent Skill](https://img.shields.io/badge/Agent-Skill-green.svg)](skills/show-your-receipts/SKILL.md)
 
-Make your research agent show the paper before it makes the claim.
+For those “I know I read that somewhere” moments.
 
-ShowYourReceipts is **one installable Agent Skill**, with local Python helpers.
-It turns eligible journal passages into original screenshots, red underlines,
-section-aware citations, context reviews and traceable summaries. It ships no
-research papers, private data, model API or hosted service.
+Give your AI a research sidekick that checks where a claim really came from.
+ShowYourReceipts helps find papers, follow citations, mark the useful passages,
+and put the evidence together—so you can spend more time moving your research forward.
+
+It's **one installable Agent Skill**. Use it with your agent's search and reading tools.
 
 **English first · [中文说明](#中文说明)**
 
-## What a receipt contains
+## What it helps you do
 
-- A source record for **SCIE, SSCI, AHCI, CSSCI, CSCD or PKU core journals**,
-  verified against an official listing covering the publication year.
-- A literal original passage, separately labeled translation and original PDF.
-- Original and underlined full-page images, plus readable excerpts.
-- **Exact location:** PDF page, printed page, actual section heading,
-  section role, paragraph/table/figure position and claim origin.
-- Purpose, methods, results, limitations and contrary/non-significant findings.
-- Abstract screening, recursive citation tracing and contextual proof of who
-  generated the particular data/method/synthesis, with every hop's original PDF.
-- The user's literal manuscript/objective passage and location, the specific
-  variable/scale/step it relates to, and what it does and does not support.
-- A bounded summary labeled direct, indirect, method precedent, contradiction
-  or insufficient evidence.
-- JSON records and hashes that tie the source, quote, images and review together.
-- A validated evidence ZIP containing the **complete original PDF**, not just its URL.
+- **Find the right papers.** Start with your research question, manuscript or experiment.
+- **Follow the footnotes.** Read the abstract, check the context, and trace borrowed
+  claims to the paper that actually produced the data or method.
+- **See the evidence.** Get exact quotes, translations and red-underlined screenshots,
+  with the page, section and paragraph spelled out.
+- **Connect it to your work.** See which hypothesis, scale or experiment step a
+  paper supports, including its limits and contrary findings.
+- **Keep it all together.** Package the original PDFs, screenshots and summary
+  into a ZIP you can revisit.
 
-For example, a literature-review citation is labeled `cited_prior_work`, not the
-target paper's own experimental result. Follow its reference chain to the actual
-origin before producing final evidence. Methods can adopt cited tools and
-discussion can compare other authors' results; section names alone prove nothing.
-A missing full text, unresolved origin, unverifiable
-historic coverage, altered quote or missing review blocks final export.
+Useful for literature reviews, checking citations, choosing measurement scales,
+and finding a sound basis for an experiment.
 
-## Install the skill
-
-Agent Skills-compatible installers can discover the single skill:
+## Get your research sidekick
 
 ```bash
 npx skills add FishXIN/ShowYourReceipts --skill show-your-receipts
 ```
 
-For an explicit, reproducible installation, clone a release and copy the folder:
+Then give your agent a task:
+
+> Use ShowYourReceipts to find core-journal evidence for my experiment.
+> Trace the claims to their original papers, show the key passages, explain
+> which parts of my experiment they support, and package the PDFs.
+> Tell me where the evidence runs out.
+
+For a pinned version, download the [release](https://github.com/FishXIN/ShowYourReceipts/releases)
+or copy the skill from a tagged checkout:
 
 ```bash
-git clone --branch v0.1.0 --depth 1 https://github.com/FishXIN/ShowYourReceipts.git
+git clone --branch v0.1.1 --depth 1 https://github.com/FishXIN/ShowYourReceipts.git
 mkdir -p /path/to/project/.agents/skills
 cp -R ShowYourReceipts/skills/show-your-receipts /path/to/project/.agents/skills/
 ```
 
-Use the directory your agent supports:
+Use the skill directory your agent supports:
 
-| Agent | Typical project skill directory |
+| Agent | Project skill directory |
 | --- | --- |
 | Codex / Agent Skills clients | `.agents/skills/` |
 | Claude Code | `.claude/skills/` |
 | GitHub Copilot | `.github/skills/` |
 | TRAE | `.trae/skills/` |
 
-The payload is [skills/show-your-receipts](skills/show-your-receipts). It is
-self-contained; root governance files and tests are not needed to invoke it.
-If your agent does not load skills automatically, instruct it to read `SKILL.md`
-and its linked references before beginning research.
+If your agent doesn't load skills automatically, ask it to read
+[SKILL.md](skills/show-your-receipts/SKILL.md) and its linked guides first.
 
-Example prompt:
+## Fast research still needs a trail
 
-> Use ShowYourReceipts to find core-journal evidence for this claim. Verify
-> historic collection coverage, read the full papers, show the literal passages
-> with original and underlined screenshots, label their actual sections, and
-> report limitations and contrary findings. Screen abstracts first, inspect who
-> generated the target data or method, and follow citations recursively to the
-> true original paper. Map evidence to my exact manuscript/objective passage and
-> package all original PDFs. If evidence is missing, say so.
+Three rules keep the shortcuts honest:
 
-## Local helpers
+1. **Check the journal.** Accept SCIE, SSCI, AHCI, CSSCI, CSCD core or PKU core
+   journal articles, with official coverage verified for the publication year.
+2. **Check who said it.** A sentence in “Methods” or “Discussion” can still cite
+   someone else's work. Follow the references until the real origin is clear.
+3. **Show the source.** Keep complete PDFs, literal passages and their context.
+   Missing full text or unresolved provenance blocks final export.
 
-Requires Python **3.10–3.13**, a text PDF, and a working environment that can
-install the pinned dependencies. No model credentials are required.
+This helps reduce unsupported AI claims. Study quality, source authenticity and
+interpretation still need a researcher’s judgment.
+
+## Local tools
+
+The skill includes a Python helper for downloading public PDFs, marking passages,
+checking records and packaging evidence. Requires Python **3.10–3.13** and text PDFs.
 
 ```bash
 python3 -m venv /path/to/task/.venv
@@ -91,176 +90,74 @@ python3 -m venv /path/to/task/.venv
   -r /path/to/skill/scripts/requirements.txt
 ```
 
-Set `SKILL_DIR` to the installed `show-your-receipts` directory. Download a lawful
-complete published PDF, or import the user's authorized original, then inspect:
+Your agent follows the [skill instructions](skills/show-your-receipts/SKILL.md).
+For manual use, the [packet guide](skills/show-your-receipts/references/packet-format.md)
+covers the commands and input templates.
+
+Search and access depend on your agent and its available tools. The helper
+downloads lawful public PDFs; it does not log in or bypass paywalls.
+Evidence packs stay local unless you choose to share them.
+Scanned, encrypted, rotated or unsupported PDF layouts are rejected.
+
+## Contribute
+
+Have a citation that keeps sending an agent in circles? Found a misleading
+quote or a broken check? [Open an issue](https://github.com/FishXIN/ShowYourReceipts/issues)
+or see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+The repository contains one self-contained skill, tests and project configuration.
+It ships no research papers, private manuscripts or credentials. Project code is MIT.
+
+CI runs 43 adversarial tests across Linux, macOS and Windows on Python 3.10–3.13.
 
 ```bash
-python "$SKILL_DIR/scripts/receipts.py" download --url "$PDF_URL" --out paper.pdf
-python "$SKILL_DIR/scripts/receipts.py" inspect \
-  --pdf paper.pdf --out paper-text.json
-```
-
-Copy and complete [source.template.json](skills/show-your-receipts/assets/source.template.json)
-using inspected official records. Save the actual registry and publisher
-snapshots; empty templates do not pass.
-Also complete [target.template.json](skills/show-your-receipts/assets/target.template.json)
-with the exact user's manuscript/objective passage and location.
-Number the user's document before filling it:
-
-```bash
-python "$SKILL_DIR/scripts/receipts.py" inspect-target \
-  --document user-manuscript.docx --out target-text.json
-```
-
-Then extract:
-
-Complete [lineage.template.json](skills/show-your-receipts/assets/lineage.template.json)
-as `lineage.json`. Record every citation hop and endpoint ownership cues.
-Use the actual original paper for `--pdf` and `source.json`; see the
-[original-source guide](skills/show-your-receipts/references/original-source.md).
-With no hops, still record matching initial/final identifiers and ownership.
-
-```bash
-python "$SKILL_DIR/scripts/receipts.py" extract \
-  --pdf paper.pdf --source source.json --target target.json --lineage lineage.json \
-  --page 5 --quote-file quote.txt \
-  --section-heading "Results" --heading-page 4 --section-role results \
-  --printed-page "3105" --paragraph "paragraph 2, right column" \
-  --origin author_finding --out receipt-001
-```
-
-Complete [review.template.json](skills/show-your-receipts/assets/review.template.json)
-as `receipt-001/review.json`, including the generated packet digest and exact
-context anchors and abstract screening record. Then:
-
-```bash
-python "$SKILL_DIR/scripts/receipts.py" check --bundle receipt-001
-python "$SKILL_DIR/scripts/receipts.py" export --bundle receipt-001
-python "$SKILL_DIR/scripts/receipts.py" pack --bundle receipt-001 --out evidence-001.zip
-```
-
-Commands return JSON; rejection returns exit code `2`. Export produces Markdown
-with images, section captions and exact user-side relevance.
-`pack` validates the records again and includes the original endpoint and every
-citation-hop PDF, citation/reference screenshots, lineage and summaries. See the
-[packet guide](skills/show-your-receipts/references/packet-format.md) for fields,
-matching, repeated passages and the full output structure.
-
-## Trust boundaries
-
-This project reduces unverifiable research output; it **does not guarantee
-hallucination-free agents or scientifically valid conclusions**.
-
-The helpers validate supplied records, literal PDF matches, heading occurrence,
-glyph geometry, image rendering, hashes, citation chains and review anchors. They do not
-independently authenticate a locally saved registry snapshot, judge an
-experiment, certify that a citation chain is complete or judge contextual ownership
-and a summary's meaning. A genuine core-journal article may
-still be weak, corrected or inapplicable.
-
-For production use, pin a release, isolate untrusted PDF parsing, maintain
-independently curated source records, and apply a substantive review appropriate
-to the use case. Mark agent reviews as agent reviews. Membership/status records
-expire after 90 days. Do not equate `record_checks_passed` with scientific approval.
-
-Version 0.1 accepts single-page, contiguous, text-backed passages. It rejects
-scans, rotated/nonstandard page geometry, encrypted PDFs and oversized inputs.
-Only the explicit `download` command fetches a public HTTPS PDF with bounded
-redirects, public-address checks, TLS verification and download provenance.
-It does not bypass paywalls, rank journals, silently OCR pages or publish user documents.
-Evidence packages include copyrighted PDFs and potentially unpublished user
-manuscripts; they are local research outputs and must be shared only as authorized.
-
-## Repository layout
-
-```text
-ShowYourReceipts/
-├── skills/show-your-receipts/
-│   ├── SKILL.md
-│   ├── LICENSE
-│   ├── assets/            # empty, explicit input templates
-│   ├── references/        # source gate and context-review rules
-│   └── scripts/           # local receipt helpers and pinned dependencies
-├── tests/                 # synthetic adversarial cases, not scientific evidence
-├── .github/               # CI, issue templates and repository checks
-├── README.md
-├── LICENSE
-├── CONTRIBUTING.md
-├── SECURITY.md
-├── AGENTS.md
-└── CITATION.cff
-```
-
-CI checks the single Skill and runs adversarial tests across Linux, macOS and
-Windows on Python 3.10–3.13. Tests cover invented passages, missing negation,
-ineligible collections, wrong dates, fake registry hosts, image tampering,
-missing reviews, ambiguous passages, literature-review attribution, exact user
-passage mapping, download checks, abstract records, unresolved/cyclic citation
-chains, false endpoint ownership and full-PDF packaging.
-
-```bash
-python -m pip install -r skills/show-your-receipts/scripts/requirements.txt
 python .github/scripts/validate_skill.py
 python -m unittest discover -s tests -v
 ```
-
-The layout follows the self-contained skill pattern in
-[Anthropic Skills](https://github.com/anthropics/skills), with lightweight
-repository checks informed by
-[GitHub Awesome Copilot](https://github.com/github/awesome-copilot).
-Project code is MIT; dependencies retain their own licenses. No third-party
-skill content is vendored.
 
 ---
 
 ## 中文说明
 
-**让 AI 先亮原文，再下结论。**
+**最好的科研搭子，减少Agent幻觉**
 
-ShowYourReceipts 是一个可直接安装的 Agent Skill，附带本地 Python 工具。
-它要求每个证据结论提供原文、原图、红线、上下文、来源资格与解读边界。
-仓库只包含 Skill、测试与必要的开源配置，不包含论文、私人报告或账号信息。
+「我记得有篇论文这么说过。」让你的科研搭子接着找。
 
-### 核心规则
+ShowYourReceipts 帮你的 AI 找论文、追出处、画重点、整理资料，
+让你少花时间翻来翻去，多花时间推进研究。
+一个 Skill，给常用 Agent 装上就能用。
 
-- 只接受 SCIE、SSCI、AHCI、CSSCI、CSCD 核心库、北大核心期刊文章。
-- 用 ISSN 核验文章发表年份对应的官方收录记录，不能以 DOI、知网或
-  PubMed 收录代替核心资格；扩展集、会议与普通期刊不准入。
-- 原句必须在 PDF 中匹配，红线按原文字形坐标生成。
-- **标明划线位置**：PDF 页码、印刷页码、实际章节标题、章节类型、
-  段落/表格/图注位置，以及作者自己的发现或引用前人研究。
-- 检查目的、方法、结果、限制、不显著及相反发现；证据不足明确说明。
-- 先看摘要，再细查正文归属；实验部分也可能采用别人方法，讨论部分可能
-  比较他人成果。沿引用逐层追到真正产生目标证据的原始论文，保存每一跳
-  引用原句、参考文献条目、定位、原文 PDF 和原图/红线图。
-- 对应用户论文/目的的具体原句、章节和段落，说明相关变量、量表或步骤，
-  以及可支持和不能支持的内容。
-- 下载完整已发表原文 PDF，保存来源和哈希，与截图及总结一起打包。
-- 未核验来源、未读全文或未完成上下文复核时，不导出最终证据。
+### 它能帮你什么
 
-### 安装与使用
+- **找对论文：** 围绕你的课题、文稿或实验，寻找核心期刊依据。
+- **追到原始出处：** 先看摘要，再核对正文；遇到转引，沿参考文献继续找。
+- **把重点摆出来：** 原句、翻译、红线截图，以及具体章节和页码一起给你。
+- **说明与你的研究有什么关系：** 支持哪个假设、量表或实验步骤，有哪些限制。
+- **把资料收好：** 原文 PDF、截图和总结一起打包，下次不用从头翻。
 
-执行上方安装命令，或复制 `skills/show-your-receipts` 到所用 Agent 的
-Skill 目录。安装 Python 依赖后，依次运行 `download → inspect → extract →
-check → pack`，填写来源、用户论文定位与复核模板。已有合法原文可跳过
-下载。所有文档遵循英文在前、中文在后。
-提取前填写溯源模板，主 PDF 使用最终原始论文；溯源未完成时不能导出。
+写综述、查引用、选量表、找实验依据，都可以叫它帮忙。
 
-可对 Agent 说：
+### 开始用
 
-> 使用 ShowYourReceipts 寻找支持这个实验的核心期刊依据。提供原句、
-> 原图与红线，标出章节和段落位置，检查是否断章取义，并列出限制和反证；
-> 指明对应我论文的具体原句和实验事项，将原文 PDF 与证据一起打包；
-> 先看摘要并识别正文归属，若是引用他人就继续溯源到真正的原始论文，
-> 保存完整引用链和每一跳原文；
-> 找不到合格证据就明确说没有。
+```bash
+npx skills add FishXIN/ShowYourReceipts --skill show-your-receipts
+```
 
-### 生产使用边界
+装好后，直接对 Agent 说：
 
-脚本检查文件、原句、坐标、哈希和核验记录的一致性，不担保官方记录
-的下载来源，也不能自动判定学术解读正确。部署时应锁定版本、隔离不可信
-PDF 解析、独立维护收录记录，并做相应的实质复核。Agent 复核不得伪装
-成人工审核；“记录检查通过”不能写成“学术真实性已经验证”。
+> 帮我找这个实验的核心期刊依据。追到真正的原始论文，把关键原句画出来，
+> 说明它支持我实验的哪个环节，再把 PDF 和资料打包。找不到依据就直说。
 
-当前支持单页连续且可提取文字的 PDF 原句；扫描、旋转、裁切异常、加密
-或超大文件会拒绝处理。工具不负责自动爬取、登录或绕过出版社访问限制。
+也可以从 [发布页](https://github.com/FishXIN/ShowYourReceipts/releases)
+下载，按上方目录表放进你的 Agent。
+本地工具需要 Python 3.10–3.13；具体步骤交给 Skill 指引。
+
+### 找得快，出处也要跟得上
+
+只接受核验过发表年份收录范围的指定核心期刊。
+实验部分可能采用他人方法，讨论部分也可能比较他人成果；
+要看语境，追到真正产生目标数据或方法的论文。
+原文拿不到、出处没追清，就说明缺口，不把转引当成最终依据。
+
+它帮你减少无依据的回答、节省查证和整理的功夫。
+论文质量与结论解读，仍需要你的专业判断。资料默认留在本地。
