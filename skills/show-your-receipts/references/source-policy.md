@@ -76,6 +76,12 @@ Search snippets, abstract-only records and inaccessible full texts are leads,
 not final evidence. Do not bypass authentication, paywalls or publisher restrictions.
 Keep copyrighted articles and confidential files out of public repositories.
 
+Screen each candidate's abstract, then inspect the detailed context for ownership.
+If a target claim is borrowed, follow the citation chain recursively to the paper
+that actually generated the evidence. Every hop and the endpoint require the
+same source verification; a secondary core-journal citation cannot admit an
+ineligible original source. A missing/ineligible ancestor stays an evidence gap.
+
 ---
 
 ## 中文说明
@@ -92,3 +98,6 @@ Keep copyrighted articles and confidential files out of public repositories.
 检查出版社当前文章记录中的撤稿、关注声明和勘误。脚本检查本地记录
 一致性，不担保下载来源和语义真实；正式部署应使用独立维护的收录记录，
 对学术结论做实质复核。找不到合格来源时如实输出证据缺口。
+先筛摘要，再判断正文归属；目标论断若为转引，逐层追到原始研究，每一跳
+及最终原文都须核验核心资格。原始来源不合格或无法取得，不能以转引它的
+核心论文代替，只能登记证据缺口。

@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "resolution": "",
+  "reviewed_at": "",
+  "reviewer": {
+    "kind": "",
+    "name": ""
+  },
+  "initial_identifier": "",
+  "final_identifier": "",
+  "hops": [],
+  "ownership": {
+    "kind": "",
+    "rationale": "",
+    "context_cues": []
+  },
+  "hop_example_do_not_submit": {
+    "identifier": "",
+    "pdf": "",
+    "pdf_sha256": "",
+    "source": "",
+    "cited_identifier": "",
+    "citation_marker": "",
+    "reference_marker": "",
+    "link_rationale": "",
+    "abstract_screen": {
+      "status": "",
+      "decision": "",
+      "rationale": "",
+      "quotes": [],
+      "all_pages_reviewed": [],
+      "search_notes": ""
+    },
+    "passage": {
+      "page": 0,
+      "printed_page": "",
+      "quote": "",
+      "section_heading": "",
+      "heading_page": 0,
+      "section_role": "",
+      "paragraph": "",
+      "origin": ""
+    },
+    "reference": {
+      "page": 0,
+      "printed_page": "",
+      "quote": "",
+      "section_heading": "",
+      "heading_page": 0,
+      "section_role": "",
+      "paragraph": "",
+      "origin": ""
+    }
+  }
+}

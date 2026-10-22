@@ -24,6 +24,8 @@ research papers, private data, model API or hosted service.
 - **Exact location:** PDF page, printed page, actual section heading,
   section role, paragraph/table/figure position and claim origin.
 - Purpose, methods, results, limitations and contrary/non-significant findings.
+- Abstract screening, recursive citation tracing and contextual proof of who
+  generated the particular data/method/synthesis, with every hop's original PDF.
 - The user's literal manuscript/objective passage and location, the specific
   variable/scale/step it relates to, and what it does and does not support.
 - A bounded summary labeled direct, indirect, method precedent, contradiction
@@ -32,7 +34,10 @@ research papers, private data, model API or hosted service.
 - A validated evidence ZIP containing the **complete original PDF**, not just its URL.
 
 For example, a literature-review citation is labeled `cited_prior_work`, not the
-target paper's own experimental result. A missing full text, unverifiable
+target paper's own experimental result. Follow its reference chain to the actual
+origin before producing final evidence. Methods can adopt cited tools and
+discussion can compare other authors' results; section names alone prove nothing.
+A missing full text, unresolved origin, unverifiable
 historic coverage, altered quote or missing review blocks final export.
 
 ## Install the skill
@@ -70,7 +75,10 @@ Example prompt:
 > Use ShowYourReceipts to find core-journal evidence for this claim. Verify
 > historic collection coverage, read the full papers, show the literal passages
 > with original and underlined screenshots, label their actual sections, and
-> report limitations and contrary findings. If evidence is missing, say so.
+> report limitations and contrary findings. Screen abstracts first, inspect who
+> generated the target data or method, and follow citations recursively to the
+> true original paper. Map evidence to my exact manuscript/objective passage and
+> package all original PDFs. If evidence is missing, say so.
 
 ## Local helpers
 
@@ -106,9 +114,16 @@ python "$SKILL_DIR/scripts/receipts.py" inspect-target \
 
 Then extract:
 
+Complete [lineage.template.json](skills/show-your-receipts/assets/lineage.template.json)
+as `lineage.json`. Record every citation hop and endpoint ownership cues.
+Use the actual original paper for `--pdf` and `source.json`; see the
+[original-source guide](skills/show-your-receipts/references/original-source.md).
+With no hops, still record matching initial/final identifiers and ownership.
+
 ```bash
 python "$SKILL_DIR/scripts/receipts.py" extract \
-  --pdf paper.pdf --source source.json --target target.json --page 5 --quote-file quote.txt \
+  --pdf paper.pdf --source source.json --target target.json --lineage lineage.json \
+  --page 5 --quote-file quote.txt \
   --section-heading "Results" --heading-page 4 --section-role results \
   --printed-page "3105" --paragraph "paragraph 2, right column" \
   --origin author_finding --out receipt-001
@@ -116,7 +131,7 @@ python "$SKILL_DIR/scripts/receipts.py" extract \
 
 Complete [review.template.json](skills/show-your-receipts/assets/review.template.json)
 as `receipt-001/review.json`, including the generated packet digest and exact
-context anchors. Then:
+context anchors and abstract screening record. Then:
 
 ```bash
 python "$SKILL_DIR/scripts/receipts.py" check --bundle receipt-001
@@ -126,7 +141,8 @@ python "$SKILL_DIR/scripts/receipts.py" pack --bundle receipt-001 --out evidence
 
 Commands return JSON; rejection returns exit code `2`. Export produces Markdown
 with images, section captions and exact user-side relevance.
-`pack` validates the records again and includes original PDFs and summaries. See the
+`pack` validates the records again and includes the original endpoint and every
+citation-hop PDF, citation/reference screenshots, lineage and summaries. See the
 [packet guide](skills/show-your-receipts/references/packet-format.md) for fields,
 matching, repeated passages and the full output structure.
 
@@ -136,9 +152,10 @@ This project reduces unverifiable research output; it **does not guarantee
 hallucination-free agents or scientifically valid conclusions**.
 
 The helpers validate supplied records, literal PDF matches, heading occurrence,
-glyph geometry, image rendering, hashes and review anchors. They do not
+glyph geometry, image rendering, hashes, citation chains and review anchors. They do not
 independently authenticate a locally saved registry snapshot, judge an
-experiment, or certify a summary's meaning. A genuine core-journal article may
+experiment, certify that a citation chain is complete or judge contextual ownership
+and a summary's meaning. A genuine core-journal article may
 still be weak, corrected or inapplicable.
 
 For production use, pin a release, isolate untrusted PDF parsing, maintain
@@ -178,7 +195,8 @@ CI checks the single Skill and runs adversarial tests across Linux, macOS and
 Windows on Python 3.10–3.13. Tests cover invented passages, missing negation,
 ineligible collections, wrong dates, fake registry hosts, image tampering,
 missing reviews, ambiguous passages, literature-review attribution, exact user
-passage mapping, download checks and full-PDF packaging.
+passage mapping, download checks, abstract records, unresolved/cyclic citation
+chains, false endpoint ownership and full-PDF packaging.
 
 ```bash
 python -m pip install -r skills/show-your-receipts/scripts/requirements.txt
@@ -212,6 +230,9 @@ ShowYourReceipts 是一个可直接安装的 Agent Skill，附带本地 Python �
 - **标明划线位置**：PDF 页码、印刷页码、实际章节标题、章节类型、
   段落/表格/图注位置，以及作者自己的发现或引用前人研究。
 - 检查目的、方法、结果、限制、不显著及相反发现；证据不足明确说明。
+- 先看摘要，再细查正文归属；实验部分也可能采用别人方法，讨论部分可能
+  比较他人成果。沿引用逐层追到真正产生目标证据的原始论文，保存每一跳
+  引用原句、参考文献条目、定位、原文 PDF 和原图/红线图。
 - 对应用户论文/目的的具体原句、章节和段落，说明相关变量、量表或步骤，
   以及可支持和不能支持的内容。
 - 下载完整已发表原文 PDF，保存来源和哈希，与截图及总结一起打包。
@@ -223,12 +244,15 @@ ShowYourReceipts 是一个可直接安装的 Agent Skill，附带本地 Python �
 Skill 目录。安装 Python 依赖后，依次运行 `download → inspect → extract →
 check → pack`，填写来源、用户论文定位与复核模板。已有合法原文可跳过
 下载。所有文档遵循英文在前、中文在后。
+提取前填写溯源模板，主 PDF 使用最终原始论文；溯源未完成时不能导出。
 
 可对 Agent 说：
 
 > 使用 ShowYourReceipts 寻找支持这个实验的核心期刊依据。提供原句、
 > 原图与红线，标出章节和段落位置，检查是否断章取义，并列出限制和反证；
 > 指明对应我论文的具体原句和实验事项，将原文 PDF 与证据一起打包；
+> 先看摘要并识别正文归属，若是引用他人就继续溯源到真正的原始论文，
+> 保存完整引用链和每一跳原文；
 > 找不到合格证据就明确说没有。
 
 ### 生产使用边界

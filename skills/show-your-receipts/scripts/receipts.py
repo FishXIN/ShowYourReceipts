@@ -44,7 +44,7 @@ COLLECTION_LABELS = {
 }
 ROLES = (
     "abstract", "introduction", "literature_review", "methods", "results",
-    "discussion", "limitations", "conclusion", "appendix", "other",
+    "discussion", "limitations", "conclusion", "references", "appendix", "other",
 )
 ORIGINS = ("author_finding", "cited_prior_work", "method_description", "hypothesis")
 SUPPORT = ("direct", "indirect", "method_precedent", "contradiction", "insufficient")
@@ -605,6 +605,199 @@ def packet_digest(record):
     return digest_bytes(canonical({key: value for key, value in record.items() if key != "packet_sha256"}))
 
 
+def validate_anchor(anchor, paper):
+    validate_location(anchor, paper)
+    return paper.match(anchor["page"], anchor.get("quote"), anchor.get("occurrence"),
+                       anchor.get("region"))
+
+
+def full_page_review(record, paper, label):
+    pages = record.get("all_pages_reviewed")
+    require(isinstance(pages, list) and all(type(p) is int for p in pages),
+            f"{label}.all_pages_reviewed must contain integer pages")
+    require(sorted(set(pages)) == list(range(1, paper.count + 1)),
+            f"{label} requires full-text page coverage")
+    text(record.get("search_notes"), label + ".search_notes")
+
+
+def validate_abstract_screen(screen, paper):
+    object_(screen, "abstract_screen")
+    text(screen.get("rationale"), "abstract_screen.rationale")
+    quotes = screen.get("quotes")
+    require(isinstance(quotes, list), "abstract_screen.quotes must be an array")
+    if screen.get("status") == "present":
+        require(bool(quotes), "abstract screening needs a literal abstract passage")
+        require(screen.get("decision") in ("target_mentioned", "not_mentioned_full_text_review"),
+                "invalid abstract screening decision")
+        for anchor in quotes:
+            require(anchor.get("section_role") == "abstract", "screening passage must be in the abstract")
+            validate_anchor(anchor, paper)
+        if screen["decision"] == "not_mentioned_full_text_review":
+            full_page_review(screen, paper, "abstract_screen")
+    else:
+        require(screen.get("status") == "absent" and not quotes
+                and screen.get("decision") == "no_abstract_full_text_review",
+                "missing abstract needs an explicit absence/full-text review record")
+        full_page_review(screen, paper, "abstract_screen")
+
+
+def article_identifier(source):
+    article = source["article"]
+    return article.get("doi") or article["title"]
+
+
+def identifier_key(value):
+    return normalized(text(value, "article identifier")).casefold()
+
+
+def reference_identifies(identifier, literal):
+    if identifier.startswith("10."):
+        # Published references often wrap a DOI across lines. Preserve boundaries
+        # so a suffix added to the real DOI cannot pass as the requested paper.
+        pattern = r"\s*".join(re.escape(char) for char in identifier) + r"(?![\w/+-])"
+        return bool(re.search(pattern, literal, re.I))
+    return identifier_key(identifier) in identifier_key(literal)
+
+
+def trace_names(number):
+    prefix = f"trace-{number:03d}"
+    names = {prefix + "-source.pdf", prefix + "-source.json"}
+    for role in ("passage", "reference"):
+        names.add(prefix + "-" + role + "-context.txt")
+        names.update(prefix + "-" + role + "-" + name for name in (
+            "page-original.png", "page-underlined.png", "excerpt-original.png", "excerpt-underlined.png",
+        ))
+    return prefix, names
+
+
+def validate_lineage(lineage, root, source, primary, staging=None):
+    """Check every citation edge; optionally copy its immutable evidence to staging."""
+    object_(lineage, "lineage")
+    require(lineage.get("schema_version") == 1, "unsupported lineage schema")
+    require(lineage.get("resolution") == "original_source_resolved",
+            "unresolved provenance cannot anchor final evidence")
+    recent(lineage.get("reviewed_at"), "lineage.reviewed_at")
+    reviewer(lineage.get("reviewer"), "lineage.reviewer")
+    final = identifier_key(lineage.get("final_identifier"))
+    require(final == identifier_key(article_identifier(source)),
+            "lineage endpoint does not identify the primary source PDF")
+    hops = lineage.get("hops")
+    require(isinstance(hops, list) and len(hops) <= 32, "lineage.hops must be an array of at most 32 hops")
+    require(all(isinstance(hop, dict) for hop in hops), "each lineage hop must be an object")
+    first = hops[0].get("identifier") if hops else lineage["final_identifier"]
+    require(identifier_key(lineage.get("initial_identifier")) == identifier_key(first),
+            "lineage starts at a different paper")
+    seen = {final}
+    expected = {"lineage.json"}
+    for number, hop in enumerate(hops, 1):
+        object_(hop, "lineage hop")
+        current = identifier_key(hop.get("identifier"))
+        require(current not in seen, "lineage contains a cycle or repeated paper")
+        seen.add(current)
+        next_id = hops[number].get("identifier") if number < len(hops) else lineage["final_identifier"]
+        require(identifier_key(hop.get("cited_identifier")) == identifier_key(next_id),
+                "broken citation chain: cited identifier must match the next paper")
+        text(hop.get("citation_marker"), "hop.citation_marker")
+        text(hop.get("reference_marker"), "hop.reference_marker")
+        text(hop.get("link_rationale"), "hop.link_rationale")
+        pdf_path = confined(root, hop.get("pdf"))
+        source_path = confined(root, hop.get("source"))
+        hop_source = load_json(source_path)
+        require(current == identifier_key(article_identifier(hop_source)),
+                "hop source record identifies a different paper")
+        require(hop.get("pdf_sha256") == digest_file(pdf_path), "hop PDF hash mismatch")
+        prefix, names = trace_names(number)
+        with Paper(pdf_path) as paper:
+            index_file, status_file = validate_source(hop_source, source_path.parent, paper)
+            validate_abstract_screen(hop.get("abstract_screen"), paper)
+            passage = object_(hop.get("passage"), "hop.passage")
+            reference = object_(hop.get("reference"), "hop.reference")
+            require(passage.get("origin") == "cited_prior_work",
+                    "a citation hop must describe cited prior work")
+            require(reference.get("section_role") == "references", "citation entry must be in references")
+            passage_match = validate_anchor(passage, paper)
+            reference_match = validate_anchor(reference, paper)
+            marker = normalized(hop["citation_marker"])
+            require(marker in normalized(passage_match["literal"])
+                    and normalized(hop["reference_marker"]) in normalized(reference_match["literal"]),
+                    "citation marker must link the passage and its reference-list entry")
+            reference_id = text(hop["cited_identifier"], "cited identifier")
+            require(reference_identifies(reference_id, reference_match["literal"]),
+                    "reference entry does not identify the exact next DOI/title")
+            index_name = prefix + "-index-record" + index_file.suffix.lower()
+            status_name = prefix + "-publisher-record" + status_file.suffix.lower()
+            names.update((index_name, status_name))
+            if staging is None:
+                require(hop["pdf"] == prefix + "-source.pdf"
+                        and hop["source"] == prefix + "-source.json",
+                        "unexpected bundled hop paths")
+                require(hop_source["index"]["snapshot"] == index_name
+                        and hop_source["status"]["snapshot"] == status_name,
+                        "unexpected bundled hop snapshot paths")
+            else:
+                shutil.copyfile(pdf_path, staging / (prefix + "-source.pdf"))
+                shutil.copyfile(index_file, staging / index_name)
+                shutil.copyfile(status_file, staging / status_name)
+                hop_source["index"]["snapshot"] = index_name
+                hop_source["status"]["snapshot"] = status_name
+                write_json(staging / (prefix + "-source.json"), hop_source)
+                hop["pdf"] = prefix + "-source.pdf"
+                hop["source"] = prefix + "-source.json"
+            for role, anchor, matched in (
+                ("passage", passage, passage_match), ("reference", reference, reference_match),
+            ):
+                images, _ = render(paper, anchor["page"], matched["boxes"])
+                artifacts = {prefix + "-" + role + "-" + name: data for name, data in images.items()}
+                artifacts[prefix + "-" + role + "-context.txt"] = matched["context"].encode("utf-8")
+                for name, data in artifacts.items():
+                    if staging is not None:
+                        (staging / name).write_bytes(data)
+                    else:
+                        require(confined(root, name).read_bytes() == data,
+                                f"lineage image/context mismatch: {name}")
+            provenance_path = Path(str(pdf_path) + ".download.json") if staging is not None else (
+                confined(root, hop["download_manifest"]) if hop.get("download_manifest") else None)
+            if provenance_path is not None and provenance_path.exists():
+                provenance = load_json(provenance_path)
+                require(provenance.get("pdf_sha256") == hop["pdf_sha256"],
+                        "hop download manifest does not identify its PDF")
+                https(provenance.get("final_url"), "hop retrieved PDF URL")
+                manifest_name = prefix + "-download.json"
+                names.add(manifest_name)
+                if staging is not None:
+                    shutil.copyfile(provenance_path, staging / manifest_name)
+                    hop["download_manifest"] = manifest_name
+                else:
+                    require(hop["download_manifest"] == manifest_name, "unexpected hop manifest path")
+            else:
+                require(not hop.get("download_manifest"), "hop download manifest is missing")
+        expected.update(names)
+    ownership = object_(lineage.get("ownership"), "lineage.ownership")
+    kind = ownership.get("kind")
+    require(kind in ("own_data", "own_method", "own_synthesis"),
+            "endpoint must own the data, method or synthesis; cited claims/hypotheses are unresolved")
+    text(ownership.get("rationale"), "ownership.rationale")
+    cues = ownership.get("context_cues")
+    require(isinstance(cues, list) and bool(cues), "ownership needs matched contextual evidence")
+    for cue in cues:
+        require(cue.get("origin") in ("author_finding", "method_description"),
+                "ownership cue cannot itself be a citation or hypothesis")
+        validate_anchor(cue, primary)
+    if kind == "own_data":
+        require(source["article"]["kind"] == "original_research", "own data requires original research")
+        require(any(cue["origin"] == "author_finding" for cue in cues),
+                "own data needs an author's finding in context")
+    elif kind == "own_synthesis":
+        require(source["article"]["kind"] in ("review", "systematic_review"),
+                "own synthesis requires a review article")
+    else:
+        require(source["article"]["kind"] in ("original_research", "methodology"),
+                "own method requires original research or methodology")
+    if staging is not None:
+        write_json(staging / "lineage.json", lineage)
+    return expected
+
+
 def extract(args):
     destination = Path(args.out).absolute()
     require(not destination.exists(), "output already exists; use a new packet directory")
@@ -614,6 +807,8 @@ def extract(args):
     target_path = Path(args.target).absolute()
     target = load_json(target_path)
     target_file = validate_target(target, target_path.parent)
+    lineage_path = Path(args.lineage).absolute()
+    lineage = load_json(lineage_path)
     quote = Path(args.quote_file).read_text(encoding="utf-8")
     location = {
         "page": args.page, "printed_page": args.printed_page,
@@ -629,6 +824,7 @@ def extract(args):
         with tempfile.TemporaryDirectory(prefix=".receipt-", dir=destination.parent) as temp:
             staging = Path(temp) / "packet"
             staging.mkdir()
+            validate_lineage(lineage, lineage_path.parent, source, paper, staging)
             index_name = "index-record" + index_file.suffix.lower()
             status_name = "publisher-record" + status_file.suffix.lower()
             target_name = "target-document" + target_file.suffix.lower()
@@ -682,6 +878,9 @@ def validate_review(review, record, paper, source, target):
         "limitations_summary", "counterevidence_summary",
     ):
         text(review.get(field), "review." + field)
+    validate_abstract_screen(review.get("abstract_screen"), paper)
+    require(record["location"]["origin"] in ("author_finding", "method_description"),
+            "final passage is a cited claim or hypothesis; trace to its original source")
     alignment = object_(review.get("target_alignment"), "review.target_alignment")
     require(alignment.get("intended_use") == target["intended_use"],
             "review target use does not match the requested manuscript use")
@@ -701,15 +900,9 @@ def validate_review(review, record, paper, source, target):
         require(isinstance(quotes, list), f"anchor.{role}.quotes must be an array")
         if not quotes:
             require(role in ("limitations", "counterevidence"), f"anchor.{role} needs a quote")
-            pages = anchor.get("all_pages_reviewed")
-            require(isinstance(pages, list) and all(type(p) is int for p in pages),
-                    "all_pages_reviewed must contain integer pages")
-            require(sorted(set(pages)) == list(range(1, paper.count + 1)),
-                    f"{role} absence requires full-text page coverage")
-            text(anchor.get("search_notes"), f"anchor.{role}.search_notes")
+            full_page_review(anchor, paper, "anchor." + role)
         for item in quotes:
-            validate_location(item, paper)
-            paper.match(item["page"], item.get("quote"), item.get("occurrence"))
+            validate_anchor(item, paper)
 
 
 def check(bundle):
@@ -722,6 +915,7 @@ def check(bundle):
     require(record.get("packet_sha256") == packet_digest(record), "packet manifest hash mismatch")
     source = load_json(confined(root, "source.json"))
     target = load_json(confined(root, "target.json"))
+    lineage = load_json(confined(root, "lineage.json"))
     validate_target(target, root)
     expected = {
         "source.pdf", "source.json", "context.txt", "page-original.png", "page-underlined.png",
@@ -739,12 +933,16 @@ def check(bundle):
                 "download manifest does not identify the bundled PDF")
         https(provenance.get("final_url"), "retrieved PDF URL")
     files = object_(record.get("files"), "receipt.files")
-    require(set(files) == expected, "receipt artifact set is incomplete or unexpected")
     for name, checksum in files.items():
         require(digest_file(confined(root, name)) == checksum, f"artifact hash mismatch: {name}")
     with Paper(confined(root, "source.pdf")) as paper:
         validate_source(source, root, paper)
+        expected.update(validate_lineage(lineage, root, source, paper))
+        require(set(files) == expected, "receipt artifact set is incomplete or unexpected")
         loc = validate_location(record.get("location"), paper)
+        require((lineage["ownership"]["kind"] == "own_method") ==
+                (loc["origin"] == "method_description"),
+                "endpoint ownership and selected passage origin disagree")
         require(record.get("normalization") == NORMALIZATION, "unexpected normalization")
         matched = paper.match(loc["page"], record.get("submitted_quote"), record.get("occurrence"),
                               record.get("region"))
@@ -778,7 +976,7 @@ def blockquote(value):
     return "\n".join("> " + line for line in value.splitlines())
 
 
-def report_content(record, source, review, target_record):
+def report_content(record, source, review, target_record, lineage):
     article = source["article"]
     target_loc = target_record["location"]
     alignment = review["target_alignment"]
@@ -790,6 +988,37 @@ def report_content(record, source, review, target_record):
         f"**Article:** {article['url']}", f"**DOI:** {article.get('doi') or 'not assigned'}",
         f"**Core record:** {source['index']['system']} / {source['index']['edition']}",
         f"**Location:** {caption}", f"**Support:** {review['support']}", "",
+        "### Abstract screening and original-source attribution", "",
+        f"**Abstract decision:** {review['abstract_screen']['decision']}",
+        review["abstract_screen"]["rationale"], "",
+    ]
+    for anchor in review["abstract_screen"]["quotes"]:
+        lines.extend([blockquote(anchor["quote"]), "", location_caption(anchor), ""])
+    lines.extend([
+        f"**Trace:** {lineage['initial_identifier']} → {lineage['final_identifier']}",
+        f"**Resolution:** {lineage['resolution']}",
+        f"**Original source PDF:** [source.pdf](source.pdf)",
+        f"**Ownership:** {lineage['ownership']['kind']} — {lineage['ownership']['rationale']}", "",
+    ])
+    for cue in lineage["ownership"]["context_cues"]:
+        lines.extend([blockquote(cue["quote"]), "", location_caption(cue), ""])
+    for number, hop in enumerate(lineage["hops"], 1):
+        prefix, _ = trace_names(number)
+        lines.extend([
+            f"#### Citation hop {number}: {hop['identifier']} → {hop['cited_identifier']}", "",
+            f"[Original hop PDF]({hop['pdf']})", "", hop["link_rationale"], "",
+            f"Abstract decision: {hop['abstract_screen']['decision']}. "
+            f"{hop['abstract_screen']['rationale']}", "",
+        ])
+        for role in ("passage", "reference"):
+            anchor = hop[role]
+            lines.extend([
+                f"**{role}:** {location_caption(anchor)}", "", blockquote(anchor["quote"]), "",
+                f"![Original {role}]({prefix}-{role}-page-original.png)", "",
+                f"![Underlined {role}]({prefix}-{role}-page-underlined.png)", "",
+                f"*{role} · {location_caption(anchor)}*", "",
+            ])
+    lines.extend([
         "### Relation to your manuscript or objective", "",
         f"**User document:** {target_record['title']}",
         f"**User location:** {target_loc['section_heading']} | "
@@ -815,7 +1044,7 @@ def report_content(record, source, review, target_record):
         f"**Limitations:** {review['limitations_summary']}", "",
         f"**Contrary / non-significant findings:** {review['counterevidence_summary']}", "",
         "### Context anchors", "",
-    ]
+    ])
     for role, anchor in review["anchors"].items():
         lines.extend([f"#### {role}", ""])
         if anchor.get("quotes"):
@@ -832,6 +1061,11 @@ def report_content(record, source, review, target_record):
         "remain reviewer assessments; hashes are not proof of truth.", "",
         "---", "", "## 中文证据说明", "",
         f"**原文位置：** {caption}", f"**证据类别：** {review['support']}", "",
+        f"**摘要初筛：** {review['abstract_screen']['decision']} / "
+        f"{review['abstract_screen']['rationale']}", "",
+        f"**最终原始来源：** {lineage['final_identifier']} / "
+        f"{lineage['ownership']['kind']}；引用链共 {len(lineage['hops'])} 跳，"
+        "逐跳原句、位置、原文 PDF 与红线图见上方及 lineage.json。", "",
         f"**对应用户论文/目的：** {target_record['title']} / "
         f"{target_loc['section_heading']} / {target_loc['unit']} {target_loc['unit_number']}", "",
         f"**用户原句：** {target_loc['quote']}", "",
@@ -852,7 +1086,8 @@ def export(bundle):
     root = Path(bundle)
     target = root / "report.md"
     require(not target.exists(), "report.md exists; export to a fresh bundle or remove it deliberately")
-    target.write_text(report_content(record, source, review, load_json(root / "target.json")),
+    target.write_text(report_content(record, source, review, load_json(root / "target.json"),
+                                     load_json(root / "lineage.json")),
                       encoding="utf-8")
     return {**result, "report": str(target)}
 
@@ -864,7 +1099,8 @@ def pack(args):
     require(target.suffix.lower() == ".zip", "package output must end in .zip")
     require(not target.exists(), "ZIP output already exists")
     require(not target.is_relative_to(root), "ZIP output must be outside the source bundle")
-    content = report_content(record, source, review, load_json(root / "target.json"))
+    content = report_content(record, source, review, load_json(root / "target.json"),
+                             load_json(root / "lineage.json"))
     target.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix=".receipt-zip-", dir=target.parent) as temp:
         archive_path = Path(temp) / "bundle.zip"
@@ -926,6 +1162,7 @@ def main(argv=None):
     extraction.add_argument("--pdf", required=True)
     extraction.add_argument("--source", required=True)
     extraction.add_argument("--target", required=True)
+    extraction.add_argument("--lineage", required=True)
     extraction.add_argument("--quote-file", required=True)
     extraction.add_argument("--page", type=int, required=True)
     extraction.add_argument("--section-heading", required=True)

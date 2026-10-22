@@ -20,11 +20,14 @@ r = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(r)
 
 
-def pdf_fixture(path, repeated=False, rotated=False):
+def pdf_fixture(path, repeated=False, rotated=False, identifier="10.1234/fixture",
+                extra_lines=None, include_abstract=True):
     """Generate a tiny PDF with actual text glyphs using only the standard library."""
     lines = [
         "TEST ONLY - NOT A REAL JOURNAL PAPER",
-        "Test paper DOI 10.1234/fixture",
+        "Test paper DOI " + identifier,
+        "Abstract",
+        "We tested tactile feedback and accuracy in a synthetic task.",
         "Introduction",
         "We examined tactile feedback during a task.",
         "Methods",
@@ -37,6 +40,9 @@ def pdf_fixture(path, repeated=False, rotated=False):
     ]
     if repeated:
         lines.append("Feedback did not significantly improve accuracy.")
+    if not include_abstract:
+        del lines[2:4]
+    lines.extend(extra_lines or [])
     stream = b"BT /F1 12 Tf 50 740 Td 22 TL\n"
     for i, line in enumerate(lines):
         escaped = line.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
@@ -62,6 +68,23 @@ def pdf_fixture(path, repeated=False, rotated=False):
         data += f"{offset:010} 00000 n \n".encode()
     data += f"trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n".encode()
     path.write_bytes(data)
+
+
+def anchor(quote, heading, role, origin="author_finding"):
+    return {
+        "page": 1, "printed_page": "unpaginated", "quote": quote,
+        "section_heading": heading, "heading_page": 1, "section_role": role,
+        "paragraph": "paragraph 1", "origin": origin,
+    }
+
+
+def abstract_screen():
+    return {
+        "status": "present", "decision": "target_mentioned",
+        "rationale": "The synthetic abstract mentions the test outcome.",
+        "quotes": [anchor("We tested tactile feedback and accuracy in a synthetic task.",
+                          "Abstract", "abstract")],
+    }
 
 
 class ReceiptTests(unittest.TestCase):
@@ -123,11 +146,25 @@ class ReceiptTests(unittest.TestCase):
         }
         self.target_path = self.root / "target.json"
         r.write_json(self.target_path, self.target)
+        self.lineage = {
+            "schema_version": 1, "resolution": "original_source_resolved",
+            "reviewed_at": today, "reviewer": self.person,
+            "initial_identifier": "10.1234/fixture", "final_identifier": "10.1234/fixture",
+            "hops": [],
+            "ownership": {
+                "kind": "own_data", "rationale": "Only a synthetic ownership test.",
+                "context_cues": [anchor("Pleasantness increased for this test device.",
+                                        "Results", "results")],
+            },
+        }
+        self.lineage_path = self.root / "lineage.json"
+        r.write_json(self.lineage_path, self.lineage)
 
     def args(self, **changes):
         opts = {
             "pdf": str(self.pdf), "source": str(self.source_path),
             "target": str(self.target_path),
+            "lineage": str(self.lineage_path),
             "quote_file": str(self.quote_path), "page": 1,
             "section_heading": "Results", "heading_page": 1, "section_role": "results",
             "printed_page": "unpaginated", "paragraph": "paragraph 1", "origin": "author_finding",
@@ -141,12 +178,6 @@ class ReceiptTests(unittest.TestCase):
 
     def complete_review(self):
         receipt = r.load_json(self.bundle / "receipt.json")
-        def anchor(quote, heading, role):
-            return {
-                "page": 1, "printed_page": "unpaginated", "quote": quote,
-                "section_heading": heading, "heading_page": 1, "section_role": role,
-                "paragraph": "paragraph 1", "origin": "author_finding",
-            }
         record = {
             "schema_version": 1, "packet_sha256": receipt["packet_sha256"],
             "reviewed_at": date.today().isoformat(), "reviewer": self.person,
@@ -157,6 +188,7 @@ class ReceiptTests(unittest.TestCase):
             "applicability_mismatch": "Not a real experiment.",
             "limitations_summary": "Synthetic sample.",
             "counterevidence_summary": "No significant accuracy improvement.",
+            "abstract_screen": abstract_screen(),
             "target_alignment": {
                 "target_quote": self.target["location"]["quote"], "intended_use": "interpretation",
                 "related_aspect": "accuracy outcome", "rationale": "The same outcome is discussed.",
@@ -187,13 +219,15 @@ class ReceiptTests(unittest.TestCase):
         self.complete_review()
         result = r.export(str(self.bundle))
         self.assertEqual(result["status"], "record_checks_passed")
-        report = (self.bundle / "report.md").read_text()
+        report = (self.bundle / "report.md").read_text(encoding="utf-8")
         self.assertIn("Results (results; heading on PDF p. 1)", report)
         self.assertIn("origin: author_finding", report)
         self.assertIn("did not significantly", report)
         self.assertIn("page-original.png", report)
         self.assertIn("User location:** 3. Experiment | line 2", report)
         self.assertIn("We test whether feedback improves accuracy.", report)
+        self.assertIn("original_source_resolved", report)
+        self.assertIn("Abstract decision", report)
         self.assertLess(report.index("## Evidence receipt"), report.index("## 中文"))
 
     def test_unreviewed_draft_cannot_export(self):
@@ -297,6 +331,229 @@ class ReceiptTests(unittest.TestCase):
     def test_cited_prior_work_cannot_be_direct(self):
         self.extraction(origin="cited_prior_work", section_role="literature_review")
         review = self.complete_review()
+        review["support"] = "direct"
+        r.write_json(self.bundle / "review.json", review)
+        with self.assertRaises(r.Rejected):
+            r.check(self.bundle)
+
+    def trace_hop(self, name, cited_identifier):
+        identifier = "10.1234/" + name
+        pdf = self.root / (name + ".pdf")
+        passage = "Prior work [1] reported an accuracy result."
+        reference = "1. Test paper. DOI " + cited_identifier
+        pdf_fixture(pdf, identifier=identifier, extra_lines=[
+            "Discussion", passage, "References", reference,
+        ])
+        source = copy.deepcopy(self.source)
+        source["article"]["doi"] = identifier
+        source["article"]["kind"] = "review"
+        source["article"]["identity"]["quote"] = "Test paper DOI " + identifier
+        publisher = self.root / (name + "-publisher.txt")
+        publisher.write_text("TEST ONLY publisher fixture\n" + identifier, encoding="utf-8")
+        source["status"]["snapshot"] = publisher.name
+        source["status"]["snapshot_sha256"] = r.digest_file(publisher)
+        source_path = self.root / (name + "-source.json")
+        r.write_json(source_path, source)
+        return {
+            "identifier": identifier, "cited_identifier": cited_identifier,
+            "pdf": pdf.name, "pdf_sha256": r.digest_file(pdf), "source": source_path.name,
+            "citation_marker": "[1]", "reference_marker": "1.",
+            "link_rationale": "Synthetic numbered citation links to entry 1.",
+            "abstract_screen": abstract_screen(),
+            "passage": anchor(passage, "Discussion", "discussion", "cited_prior_work"),
+            "reference": anchor(reference, "References", "references", "cited_prior_work"),
+        }
+
+    def two_hops(self):
+        self.lineage["initial_identifier"] = "10.1234/lead"
+        self.lineage["hops"] = [
+            self.trace_hop("lead", "10.1234/middle"),
+            self.trace_hop("middle", "10.1234/fixture"),
+        ]
+        r.write_json(self.lineage_path, self.lineage)
+
+    def test_recursive_trace_exports_and_packages_each_original_pdf_and_citation(self):
+        self.two_hops()
+        self.extraction()
+        self.complete_review()
+        output = self.root / "traced.zip"
+        r.pack(argparse.Namespace(bundle=str(self.bundle), out=str(output)))
+        with zipfile.ZipFile(output) as archive:
+            self.assertEqual(archive.read("receipt/trace-001-source.pdf"),
+                             (self.root / "lead.pdf").read_bytes())
+            self.assertEqual(archive.read("receipt/trace-002-source.pdf"),
+                             (self.root / "middle.pdf").read_bytes())
+            self.assertIn("receipt/lineage.json", archive.namelist())
+            self.assertIn("receipt/trace-002-reference-page-underlined.png", archive.namelist())
+            report = archive.read("receipt/report.md").decode("utf-8")
+            self.assertIn("Citation hop 2", report)
+            self.assertIn("Discussion (discussion", report)
+
+    def test_missing_and_unresolved_lineage_rejected(self):
+        with self.assertRaises(r.Rejected):
+            self.extraction(lineage=str(self.root / "missing.json"))
+        self.lineage["resolution"] = "unresolved"
+        r.write_json(self.lineage_path, self.lineage)
+        with self.assertRaises(r.Rejected):
+            self.extraction()
+
+    def test_broken_chain_wrong_endpoint_and_cycles_rejected(self):
+        self.two_hops()
+        base = copy.deepcopy(self.lineage)
+        for mutate in (
+            lambda x: x.update(final_identifier="10.1234/other"),
+            lambda x: x["hops"][0].update(cited_identifier="10.1234/other"),
+            lambda x: x["hops"][1].update(identifier="10.1234/lead"),
+        ):
+            changed = copy.deepcopy(base)
+            mutate(changed)
+            r.write_json(self.lineage_path, changed)
+            with self.assertRaises(r.Rejected):
+                self.extraction()
+
+    def test_trace_citation_marker_and_fabricated_reference_rejected(self):
+        self.two_hops()
+        base = copy.deepcopy(self.lineage)
+        for field, value in (("citation_marker", "[99]"), ("reference_marker", "99.")):
+            changed = copy.deepcopy(base)
+            changed["hops"][0][field] = value
+            r.write_json(self.lineage_path, changed)
+            with self.assertRaises(r.Rejected):
+                self.extraction()
+        changed = copy.deepcopy(base)
+        changed["hops"][0]["reference"]["quote"] = "1. A fabricated paper. DOI 10.1234/middle"
+        r.write_json(self.lineage_path, changed)
+        with self.assertRaises(r.Rejected):
+            self.extraction()
+
+    def test_reference_doi_prefix_is_not_the_next_paper(self):
+        hop = self.trace_hop("lead", "10.1234/fixture-extra")
+        hop["cited_identifier"] = "10.1234/fixture"
+        self.lineage.update(initial_identifier="10.1234/lead", hops=[hop])
+        r.write_json(self.lineage_path, self.lineage)
+        with self.assertRaises(r.Rejected):
+            self.extraction()
+
+    def test_wrapped_reference_dois_preserve_exact_identifier_boundaries(self):
+        self.assertTrue(r.reference_identifies("10.1016/j.jesp.2006.05.003",
+                                              "doi: 10.\n1016/j.jesp.2006.05.003"))
+        self.assertTrue(r.reference_identifies("10.1234/FIXTURE", "doi: 10.1234/fixture."))
+        self.assertFalse(r.reference_identifies("10.1234/fixture", "doi: 10.1234/fixture-extra"))
+        self.assertFalse(r.reference_identifies("10.1234/fixture", "doi: 10.1234/fixture2"))
+
+    def test_trace_hop_must_pass_source_gate_and_pdf_hash(self):
+        self.two_hops()
+        lead = self.root / "lead-source.json"
+        source = r.load_json(lead)
+        source["index"]["system"] = "ESCI"
+        r.write_json(lead, source)
+        with self.assertRaises(r.Rejected):
+            self.extraction()
+        self.two_hops()
+        self.lineage["hops"][0]["pdf_sha256"] = "0" * 64
+        r.write_json(self.lineage_path, self.lineage)
+        with self.assertRaises(r.Rejected):
+            self.extraction()
+
+    def test_rehashed_trace_image_is_still_checked_against_its_pdf(self):
+        self.two_hops()
+        self.extraction()
+        record = r.load_json(self.bundle / "receipt.json")
+        image = self.bundle / "trace-001-passage-page-underlined.png"
+        image.write_bytes(b"forged trace image")
+        record["files"][image.name] = r.digest_file(image)
+        record["packet_sha256"] = r.packet_digest(record)
+        r.write_json(self.bundle / "receipt.json", record)
+        self.complete_review()
+        with self.assertRaises(r.Rejected):
+            r.check(self.bundle)
+
+    def test_cited_claim_and_hypothesis_cannot_export_in_any_support_category(self):
+        self.extraction(origin="cited_prior_work", section_role="discussion", section_heading="Results")
+        review = self.complete_review()
+        for support in r.SUPPORT:
+            review["support"] = support
+            r.write_json(self.bundle / "review.json", review)
+            with self.assertRaises(r.Rejected):
+                r.check(self.bundle)
+        record = r.load_json(self.bundle / "receipt.json")
+        record["location"]["origin"] = "hypothesis"
+        record["packet_sha256"] = r.packet_digest(record)
+        r.write_json(self.bundle / "receipt.json", record)
+        self.complete_review()
+        with self.assertRaises(r.Rejected):
+            r.export(self.bundle)
+
+    def test_missing_abstract_and_fabricated_abstract_screen_rejected(self):
+        self.extraction()
+        review = self.complete_review()
+        base = copy.deepcopy(review)
+        del review["abstract_screen"]
+        r.write_json(self.bundle / "review.json", review)
+        with self.assertRaises(r.Rejected):
+            r.check(self.bundle)
+        base["abstract_screen"]["quotes"][0]["quote"] = "We proved an accuracy benefit."
+        r.write_json(self.bundle / "review.json", base)
+        with self.assertRaises(r.Rejected):
+            r.check(self.bundle)
+
+    def test_abstract_no_match_requires_full_text_review(self):
+        self.extraction()
+        review = self.complete_review()
+        screen = review["abstract_screen"]
+        screen["decision"] = "not_mentioned_full_text_review"
+        r.write_json(self.bundle / "review.json", review)
+        with self.assertRaises(r.Rejected):
+            r.check(self.bundle)
+        screen.update(all_pages_reviewed=[1], search_notes="TEST ONLY full-text review rationale.")
+        r.write_json(self.bundle / "review.json", review)
+        self.assertEqual(r.check(self.bundle)[0]["status"], "record_checks_passed")
+
+    def test_absent_abstract_requires_full_text_record(self):
+        pdf_fixture(self.pdf, include_abstract=False)
+        self.extraction()
+        review = self.complete_review()
+        review["abstract_screen"] = {
+            "status": "absent", "decision": "no_abstract_full_text_review", "quotes": [],
+            "rationale": "TEST ONLY fixture has no abstract.",
+        }
+        r.write_json(self.bundle / "review.json", review)
+        with self.assertRaises(r.Rejected):
+            r.check(self.bundle)
+        review["abstract_screen"].update(all_pages_reviewed=[1], search_notes="All pages inspected.")
+        r.write_json(self.bundle / "review.json", review)
+        self.assertEqual(r.check(self.bundle)[0]["status"], "record_checks_passed")
+
+    def test_ownership_cannot_be_cited_or_a_hypothesis(self):
+        for kind in ("cited_prior_work", "hypothesis", ""):
+            self.lineage["ownership"]["kind"] = kind
+            r.write_json(self.lineage_path, self.lineage)
+            with self.assertRaises(r.Rejected):
+                self.extraction()
+        self.lineage["ownership"]["kind"] = "own_data"
+        self.lineage["ownership"]["context_cues"][0]["origin"] = "cited_prior_work"
+        r.write_json(self.lineage_path, self.lineage)
+        with self.assertRaises(r.Rejected):
+            self.extraction()
+
+    def test_own_method_may_have_background_citations_without_being_direct_data(self):
+        method = "We implemented our new synthetic method, unlike prior work [1]."
+        pdf_fixture(self.pdf, extra_lines=["Methods", method])
+        self.quote_path.write_text(method, encoding="utf-8")
+        self.lineage["ownership"] = {
+            "kind": "own_method", "rationale": "An implemented test method with a background citation.",
+            "context_cues": [anchor(method, "Methods", "methods", "method_description")],
+        }
+        r.write_json(self.lineage_path, self.lineage)
+        self.extraction(origin="method_description", section_role="methods", section_heading="Methods")
+        review = self.complete_review()
+        review["support"] = "method_precedent"
+        review["anchors"]["results"]["quotes"][0]["quote"] = (
+            "Feedback did not significantly improve accuracy.")
+        review["anchors"]["counterevidence"]["quotes"][0]["quote"] = (
+            "Feedback did not significantly improve accuracy.")
+        r.write_json(self.bundle / "review.json", review)
+        self.assertEqual(r.check(self.bundle)[0]["status"], "record_checks_passed")
         review["support"] = "direct"
         r.write_json(self.bundle / "review.json", review)
         with self.assertRaises(r.Rejected):
