@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="530" viewBox="0 0 1440 530" role="img" aria-labelledby="title desc">
+  <title id="title">A citation is a trail, not the original result</title>
+  <desc id="desc">Conceptual example: paper A cites review B, which cites original study C. Each citation needs its passage, reference entry and PDF. Only after inspecting C's own method and results can the target claim be attributed to C.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M1 1 7 4 1 7" fill="none" stroke="#6b7372" stroke-width="1.5"/></marker>
+    <style>
+      text{font-family:Arial,Helvetica,sans-serif;fill:#182725}
+      .eyebrow{font-size:14px;letter-spacing:2px;font-weight:700;fill:#3b7868}
+      .title{font-size:32px;font-weight:700}
+      .sub{font-size:19px;fill:#566762}
+      .label{font-size:24px;font-weight:700}
+      .body{font-size:18px;fill:#53645e}
+      .tag{font-size:14px;font-weight:700;fill:#3b7868}
+    </style>
+  </defs>
+  <rect width="1440" height="530" rx="20" fill="#f6faf8"/>
+  <text class="eyebrow" x="48" y="44">SHOWYOURRECEIPTS / FOLLOW THE FOOTNOTES</text>
+  <text class="title" x="48" y="97">Who actually produced this result?</text>
+  <text class="sub" x="48" y="133">Read the abstract first. Then use the detailed context to decide who owns the claim.</text>
+  <g transform="translate(48 185)">
+    <rect width="360" height="202" rx="12" fill="#fff" stroke="#d9e6df"/>
+    <text class="tag" x="24" y="33">FIRST PAPER YOU FIND</text>
+    <text class="label" x="24" y="76">Paper A</text>
+    <text class="body" x="24" y="113">The passage credits review B.</text>
+    <text class="body" x="24" y="153">Save the quote + reference.</text>
+    <text class="body" x="24" y="178">Open B’s published PDF.</text>
+  </g>
+  <g transform="translate(536 185)">
+    <rect width="360" height="202" rx="12" fill="#fff" stroke="#d9e6df"/>
+    <text class="tag" x="24" y="33">ANOTHER CITATION</text>
+    <text class="label" x="24" y="76">Review B</text>
+    <text class="body" x="24" y="113">The target result comes from C.</text>
+    <text class="body" x="24" y="153">Save this citation edge too.</text>
+    <text class="body" x="24" y="178">Open C’s published PDF.</text>
+  </g>
+  <g transform="translate(1024 185)">
+    <rect width="368" height="202" rx="12" fill="#e8f3ed" stroke="#bfd6c8"/>
+    <text class="tag" x="24" y="33">OWNERSHIP ESTABLISHED</text>
+    <text class="label" x="24" y="76">Original study C</text>
+    <text class="body" x="24" y="113">C actually generated the evidence.</text>
+    <text class="body" x="24" y="153">Check its methods and results.</text>
+    <text class="body" x="24" y="178">Quote C with its context.</text>
+  </g>
+  <g fill="none" stroke="#6b7372" stroke-width="2" marker-end="url(#arrow)">
+    <path d="M421 285H520"/><path d="M909 285H1008"/>
+  </g>
+  <text class="tag" x="443" y="266">CITES</text>
+  <text class="tag" x="931" y="266">CITES</text>
+  <path d="M48 423H1392" stroke="#d9e6df"/>
+  <text class="body" x="48" y="457">Every paper needs the source gate. An unresolved or ineligible origin stops final export.</text>
+  <text class="sub" x="48" y="494">Conceptual example. “Methods” and “Discussion” headings alone do not prove authorship.</text>
+</svg>

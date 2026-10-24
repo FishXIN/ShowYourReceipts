@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="500" viewBox="0 0 1440 500" role="img" aria-labelledby="title desc">
+  <title id="title">从研究问题到图文 Word 和原文 PDF 压缩包</title>
+  <desc id="desc">明确研究问题，找核心期刊论文并看摘要，沿引用追到原始研究，核对原句和上下文，最后输出一份极简 Word 和完整原文压缩包。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M1 1 7 4 1 7" fill="none" stroke="#6b7372" stroke-width="1.5"/></marker>
+    <style>
+      text{font-family:"PingFang SC","Microsoft YaHei","Noto Sans CJK SC",Arial,sans-serif;fill:#182725}
+      .eyebrow{font-size:14px;letter-spacing:2px;font-weight:700;fill:#3b7868}
+      .heading{font-size:34px;font-weight:700}
+      .sub{font-size:20px;fill:#566762}
+      .step{font-size:14px;fill:#64766e;font-weight:700}
+      .label{font-size:24px;font-weight:700}
+      .detail{font-size:17px;fill:#53645e}
+      .icon{fill:none;stroke:#245f4c;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+    </style>
+  </defs>
+  <rect width="1440" height="500" rx="20" fill="#f6faf8"/>
+  <text class="eyebrow" x="48" y="44">SHOWYOURRECEIPTS / 一次研究，怎么走</text>
+  <text class="heading" x="48" y="99">最好的科研搭子，减少Agent幻觉</text>
+  <text class="sub" x="48" y="137">给 Agent 一个研究问题，带回有出处的原句、解释和完整文件。</text>
+  <g stroke="#6b7372" stroke-width="2" marker-end="url(#arrow)">
+    <path d="M293 278H310"/><path d="M566 278H583"/>
+    <path d="M839 278H856"/><path d="M1112 278H1129"/>
+  </g>
+  <g transform="translate(48 181)">
+    <rect width="236" height="211" rx="12" fill="#fff" stroke="#d9e6df"/>
+    <text class="step" x="22" y="31">01 / 明确问题</text>
+    <g class="icon" transform="translate(22 52)"><path d="M0 0h31l12 12v39H0zM31 0v12h12M9 23h24M9 33h18M9 43h23"/></g>
+    <text class="label" x="22" y="135">你的研究</text>
+    <text class="detail" x="22" y="165">一条论断、一段文稿，</text>
+    <text class="detail" x="22" y="188">或一个实验环节。</text>
+  </g>
+  <g transform="translate(321 181)">
+    <rect width="236" height="211" rx="12" fill="#fff" stroke="#d9e6df"/>
+    <text class="step" x="22" y="31">02 / 找对论文</text>
+    <g class="icon" transform="translate(22 52)"><rect x="0" y="0" width="33" height="44" rx="2"/><path d="M8 10h17M8 18h12M8 26h9"/><circle cx="33" cy="34" r="12"/><path d="m42 43 10 10"/></g>
+    <text class="label" x="22" y="135">核验来源</text>
+    <text class="detail" x="22" y="165">查发表年份的核心收录，</text>
+    <text class="detail" x="22" y="188">先看摘要是否相关。</text>
+  </g>
+  <g transform="translate(594 181)">
+    <rect width="236" height="211" rx="12" fill="#fff" stroke="#d9e6df"/>
+    <text class="step" x="22" y="31">03 / 继续溯源</text>
+    <g class="icon" transform="translate(22 52)"><rect width="18" height="24" rx="2"/><rect x="32" y="28" width="18" height="24" rx="2"/><path d="M18 12h23v16M36 23l5 5 5-5M5 7h8M37 36h8M37 43h8"/></g>
+    <text class="label" x="22" y="135">追到原始研究</text>
+    <text class="detail" x="22" y="165">这句话若是引用别人的，</text>
+    <text class="detail" x="22" y="188">就沿参考文献接着找。</text>
+  </g>
+  <g transform="translate(867 181)">
+    <rect width="236" height="211" rx="12" fill="#fff" stroke="#d9e6df"/>
+    <text class="step" x="22" y="31">04 / 核对原文</text>
+    <g class="icon" transform="translate(22 52)"><rect width="44" height="52" rx="2"/><path d="M8 10h28M8 20h28M8 30h28M8 40h18"/></g>
+    <path d="M897 265h28" stroke="#dc3340" stroke-width="3"/>
+    <text class="label" x="22" y="135">原句与语境</text>
+    <text class="detail" x="22" y="165">保留限定、边界与反证，</text>
+    <text class="detail" x="22" y="188">标出章节、页码和段落。</text>
+  </g>
+  <g transform="translate(1140 181)">
+    <rect width="252" height="211" rx="12" fill="#e8f3ed" stroke="#bfd6c8"/>
+    <text class="step" x="22" y="31">05 / 交付资料</text>
+    <g class="icon" transform="translate(22 52)"><path d="M0 0h31l12 12v39H0zM31 0v12h12M8 23h25M8 32h25M8 41h15M54 11h23v40H54zM65 15v31M62 20h6M62 28h6M62 36h6"/></g>
+    <text class="label" x="22" y="135">Word + 原文 ZIP</text>
+    <text class="detail" x="22" y="165">一份极简图文报告，</text>
+    <text class="detail" x="22" y="188">完整 PDF 一起收好。</text>
+  </g>
+  <path d="M48 428H1392" stroke="#d9e6df"/>
+  <circle cx="56" cy="461" r="5" fill="#3b7868"/>
+  <text class="detail" x="73" y="467">Agent 负责搜索与语境判断；本地工具负责文件检查、原文划线和 Word 生成。</text>
+</svg>

@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="530" viewBox="0 0 1440 530" role="img" aria-labelledby="title desc">
+  <title id="title">引用不是终点，要追到真正产生目标证据的原始论文</title>
+  <desc id="desc">概念示意：论文 A 引用综述 B，综述 B 又引用原始研究 C。每一跳保留引用段、参考条目和 PDF。核对 C 的方法与结果后，才能确认目标数据确实由 C 产生。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M1 1 7 4 1 7" fill="none" stroke="#6b7372" stroke-width="1.5"/></marker>
+    <style>
+      text{font-family:"PingFang SC","Microsoft YaHei","Noto Sans CJK SC",Arial,sans-serif;fill:#182725}
+      .eyebrow{font-size:14px;letter-spacing:2px;font-weight:700;fill:#3b7868}
+      .title{font-size:32px;font-weight:700}
+      .sub{font-size:19px;fill:#566762}
+      .label{font-size:24px;font-weight:700}
+      .body{font-size:18px;fill:#53645e}
+      .tag{font-size:14px;font-weight:700;fill:#3b7868}
+    </style>
+  </defs>
+  <rect width="1440" height="530" rx="20" fill="#f6faf8"/>
+  <text class="eyebrow" x="48" y="44">SHOWYOURRECEIPTS / 沿参考文献，继续找</text>
+  <text class="title" x="48" y="97">这个结果，到底是谁做出来的？</text>
+  <text class="sub" x="48" y="133">先筛摘要，再细读正文；判断的是具体数据或方法的归属，不是整篇文章的名气。</text>
+  <g transform="translate(48 185)">
+    <rect width="360" height="202" rx="12" fill="#fff" stroke="#d9e6df"/>
+    <text class="tag" x="24" y="33">最先找到的论文</text>
+    <text class="label" x="24" y="76">论文 A</text>
+    <text class="body" x="24" y="113">这段话引用的是综述 B。</text>
+    <text class="body" x="24" y="153">记下原句和参考文献条目，</text>
+    <text class="body" x="24" y="178">打开 B 的已发表原文 PDF。</text>
+  </g>
+  <g transform="translate(536 185)">
+    <rect width="360" height="202" rx="12" fill="#fff" stroke="#d9e6df"/>
+    <text class="tag" x="24" y="33">仍然是转引</text>
+    <text class="label" x="24" y="76">综述 B</text>
+    <text class="body" x="24" y="113">目标结果来自另一篇研究 C。</text>
+    <text class="body" x="24" y="153">这一跳的引用也要保留，</text>
+    <text class="body" x="24" y="178">继续打开 C 的原文 PDF。</text>
+  </g>
+  <g transform="translate(1024 185)">
+    <rect width="368" height="202" rx="12" fill="#e8f3ed" stroke="#bfd6c8"/>
+    <text class="tag" x="24" y="33">确认了证据归属</text>
+    <text class="label" x="24" y="76">原始研究 C</text>
+    <text class="body" x="24" y="113">C 确实产生了目标数据或方法。</text>
+    <text class="body" x="24" y="153">核对方法、结果和上下文，</text>
+    <text class="body" x="24" y="178">最后引用 C 的原句与位置。</text>
+  </g>
+  <g fill="none" stroke="#6b7372" stroke-width="2" marker-end="url(#arrow)">
+    <path d="M421 285H520"/><path d="M909 285H1008"/>
+  </g>
+  <text class="tag" x="449" y="266">引用</text>
+  <text class="tag" x="937" y="266">引用</text>
+  <path d="M48 423H1392" stroke="#d9e6df"/>
+  <text class="body" x="48" y="457">每篇都要核验来源资格。原始出处追不到、全文拿不到或不合格，就停止最终导出。</text>
+  <text class="sub" x="48" y="494">概念示意。实验部分也可能采用别人的方法，讨论部分也可能是在比较他人的结果。</text>
+</svg>
