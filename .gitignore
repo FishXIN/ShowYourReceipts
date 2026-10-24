@@ -26,6 +26,7 @@ Thumbs.db
 *.pdf
 *.docx
 *.png
+!docs/images/word-layout-demo.png
 *.jpg
 *.jpeg
 *.zip

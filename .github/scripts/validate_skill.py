@@ -5,9 +5,11 @@ import json
 import re
 import sys
 from pathlib import Path
+from xml.etree import ElementTree
 
 ROOT = Path(__file__).resolve().parents[2]
 SKILL = ROOT / "skills/show-your-receipts"
+DOC_PREVIEW = ROOT / "docs/images/word-layout-demo.png"
 
 
 def main():
@@ -43,6 +45,23 @@ def main():
         require("\r" not in content, f"{md.name} must use LF line endings")
     for template in (SKILL / "assets").glob("*.json"):
         json.loads(template.read_text(encoding="utf-8"))
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    links = re.findall(r"\[[^\]]*\]\(([^)]+)\)", readme)
+    links += re.findall(r'<img\b[^>]*\bsrc="([^"]+)"', readme)
+    for link in links:
+        if "://" not in link and not link.startswith("#"):
+            require((ROOT / link.split("#")[0]).is_file(), f"broken README asset/link: {link}")
+    for svg in (ROOT / "docs/images").glob("*.svg"):
+        document = ElementTree.fromstring(svg.read_bytes())
+        elements = list(document.iter())
+        require(document.tag == "{http://www.w3.org/2000/svg}svg", "diagram must be an SVG")
+        require(any(element.tag.endswith("}title") and element.text for element in elements),
+                f"diagram needs accessible title: {svg.name}")
+        require(not any(element.tag.rsplit("}", 1)[-1] in ("script", "foreignObject", "image")
+                        for element in elements), f"diagram must contain only native vectors: {svg.name}")
+        require(not any(key.lower().startswith("on") or "href" in key.lower()
+                        for element in elements for key in element.attrib),
+                f"diagram must not contain scripts/external references: {svg.name}")
     require((SKILL / "LICENSE").read_bytes() == (ROOT / "LICENSE").read_bytes(),
             "skill must retain the repository license")
     for workflow in (ROOT / ".github/workflows").glob("*.yml"):
@@ -56,8 +75,15 @@ def main():
             continue
         require(not file.is_symlink(), f"unexpected symlink: {file.relative_to(ROOT)}")
         if file.is_file():
-            require(file.suffix.lower() not in (".pdf", ".docx", ".png", ".jpg", ".zip"),
+            require(file.suffix.lower() not in (".pdf", ".docx", ".png", ".jpg", ".zip")
+                    or file == DOC_PREVIEW,
                     f"research or output artifact found: {file.relative_to(ROOT)}")
+            if file == DOC_PREVIEW:
+                data = file.read_bytes()
+                require(data.startswith(b"\x89PNG\r\n\x1a\n") and len(data) <= 1024 * 1024,
+                        "documentation preview must be a PNG under 1 MiB")
+                require(b"Synthetic test fixture. Layout demo only. Not scientific evidence." in data,
+                        "documentation preview needs its synthetic-demo metadata label")
             if file.suffix in (".md", ".py", ".cjs", ".json", ".yml"):
                 content = file.read_text(encoding="utf-8")
                 require(not re.search(r"(?:gh[pousr]_[A-Za-z0-9]{30,}|sk-[A-Za-z0-9]{30,})", content),

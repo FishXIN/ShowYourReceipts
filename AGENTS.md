@@ -17,6 +17,9 @@
 - Keep English before Chinese in human/agent documentation.
 - Use MIT-compatible dependencies and pinned, reviewed versions.
 - Keep research PDFs, screenshots, output packets, credentials and caches out of git.
+  Documentation may include original SVG diagrams and the explicitly labeled
+  synthetic Word layout preview at `docs/images/word-layout-demo.png`.
+  This exception never admits real paper screenshots or private documents.
 - For substantive behavior changes, run the repository validator and adversarial tests.
 - Do not publish a release without passing CI.
 
@@ -29,5 +32,7 @@
 先看摘要，逐层溯源并保留引用链和原文；章节不能单独证明归属，转引论断
 或溯源未完成须阻止导出。
 研究文件、私人数据和凭证不得进入版本库；发布前必须通过检查。
+文档可包含原创 SVG 说明图和明确标注合成测试的 Word 版式示例，
+仅限 `docs/images/word-layout-demo.png`，不允许真实论文截图或私人文稿。
 最终固定交付一份极简图文 Word 和原文 ZIP，不让用户自由选格式，
 不添加封面、目录、装饰或额外分析。
